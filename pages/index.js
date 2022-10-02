@@ -129,10 +129,13 @@ const App = () => {
     const rawPieces = [];
     for (let i = 0; i < boardSize * boardSize; i++) {
       rawPieces.push(getRandomPiece());
-      while (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) {
-        rawPieces[i] = getRandomPiece();
-      }
-      while (i > 2 * boardSize && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize]) {
+      // while (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) {
+      //   rawPieces[i] = getRandomPiece();
+      // }
+      while (
+        (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) ||
+        (i > 2 * boardSize && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize])
+      ) {
         rawPieces[i] = getRandomPiece();
       }
     }
