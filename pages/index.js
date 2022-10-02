@@ -1,11 +1,12 @@
 //TODO режим максимального счета за время
 //TODO режим максимального счета за ходы
-//TODO режим несвободных ходов
+//TODO режим свободных ходов
 //TODO режим разного веса фигур
 //TODO режим двух игроков
-//TODO счет ходов
-//TODO починить счет
-//TODO формат времени
+//DONE режим пяти цветов
+//DONE счет ходов
+//DONE починить счет
+//DONE формат времени
 
 // import "./index.css";
 import React, { useState, useEffect } from "react";
@@ -79,7 +80,13 @@ import React, { useState, useEffect } from "react";
 // ];
 
 // const boardSize = 8;
+// const classes = () =>
+//   gamemode === "fiveColors"
+//     ? ["square", "diamond", "circle", "triangle", "pentagon", "star"]
+//     : ["square", "diamond", "circle", "triangle", "pentagon"];
+
 const classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
+const classesFiveColors = ["square", "diamond", "circle", "triangle", "pentagon"];
 
 const App = () => {
   const [currentPieces, setCurrentPieces] = useState([]);
@@ -90,12 +97,15 @@ const App = () => {
   const [movesMade, setMovesMade] = useState(0);
   const [count, setCount] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  const [gamemode, setGamemode] = useState("regular");
 
   const rowGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index);
   const columnGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index * boardSize);
 
   const getRandomPiece = () => {
-    return classes[Math.floor(Math.random() * classes.length)];
+    return gamemode === "fiveColors"
+      ? classesFiveColors[Math.floor(Math.random() * classesFiveColors.length)]
+      : classes[Math.floor(Math.random() * classes.length)];
   };
 
   const populateBoard = () => {
@@ -290,7 +300,7 @@ const App = () => {
   useEffect(() => {
     populateBoard();
     // console.log(currentPieces);
-  }, [boardSize]);
+  }, [boardSize, gamemode]);
 
   useEffect(() => {
     const timeIncrement = setInterval(() => {
@@ -345,14 +355,80 @@ const App = () => {
 
   return (
     <div className='App'>
+      <div className='controlPanel'>
+        <div className='boardSizeBtns'>
+          <button
+            className='boardSizeBtn'
+            onClick={() => {
+              if (sizeHasChanged) {
+                boardSize != 5 && setBoardSize(boardSize - 1);
+              } else {
+                if (window.confirm("Изменить размер доски? Счет будет обнулен") && boardSize != 5) {
+                  setBoardSize(boardSize - 1);
+                  setSizeHasChanged(true);
+                  setMovesMade(0);
+                  setCount(0);
+                }
+              }
+            }}>
+            -
+          </button>
+          <span>Размер доски: {boardSize}</span>
+          <button
+            className='boardSizeBtn'
+            onClick={() => {
+              if (sizeHasChanged) {
+                setBoardSize(boardSize + 1);
+              } else {
+                if (window.confirm("Изменить размер доски? Счет будет обнулен")) {
+                  setBoardSize(boardSize + 1);
+                  setSizeHasChanged(true);
+                  setMovesMade(0);
+                  setCount(0);
+                }
+              }
+            }}>
+            +
+          </button>
+          {/* <button
+          onClick={() => {
+            setFreeMode(!freeMode);
+          }}>
+          Свободный режим: {freeMode ? "включен" : "выключен"}
+        </button> */}
+        </div>
+        <button
+          onClick={() => {
+            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              setGamemode(gamemode === "regular" ? "fiveColors" : "regular");
+              setMovesMade(0);
+              setCount(0);
+            }
+          }}>
+          {gamemode === "regular" ? "Режим пяти цветов" : "Обычный режим"}
+        </button>
+      </div>
       {movesMade && (
         <div className='stats'>
-          <span> Счет: {count}</span>
+          <span>Режим: {gamemode === "regular" ? "обычный" : gamemode === "fiveColors" ? "пять цветов" : null}</span>
           <span>
-            Время: {Math.floor(timeElapsed / 60)}:{timeElapsed % 60 < 10 && 0}
-            {timeElapsed % 60}
+            Счет: {count}
+            {count > 1000 && ". Сумасшедший!"}
           </span>
-          <span>Ходов сделано: {movesMade} </span>
+          <span
+            onClick={() => {
+              setMovesMade(movesMade + 20);
+            }}>
+            Время: {timeElapsed >= 3600 && Math.floor(timeElapsed / 3600) + ":"}
+            {timeElapsed % 3600 < 600 && 0}
+            {Math.floor((timeElapsed % 3600) / 60)}:{timeElapsed % 60 < 10 && 0}
+            {timeElapsed % 60}
+            {timeElapsed > 3600 && ". Безумец!"}
+          </span>
+          <span>
+            Ходов сделано: {movesMade}
+            {movesMade > 100 && ". Невероятно!"}
+          </span>
         </div>
       )}
       <div
@@ -381,42 +457,22 @@ const App = () => {
         ))}
         {/* <PopulateBoard /> */}
       </div>
-      <div className='boardSizeBtns'>
-        <button
-          className='boardSizeBtn'
-          onClick={() => {
-            sizeHasChanged
-              ? boardSize != 5 && setBoardSize(boardSize - 1)
-              : window.confirm("Изменить размер доски? Счет будет обнулен") && boardSize != 5 && setBoardSize(boardSize - 1);
-            setSizeHasChanged(true);
-            setMovesMade(0);
-          }}>
-          -
-        </button>
-        <span>Размер доски: {boardSize}</span>
-        <button
-          className='boardSizeBtn'
-          onClick={() => {
-            sizeHasChanged
-              ? setBoardSize(boardSize + 1)
-              : window.confirm("Изменить размер доски? Счет будет обнулен") && setBoardSize(boardSize + 1);
-            setSizeHasChanged(true);
-            setMovesMade(0);
-          }}>
-          +
-        </button>
-        {/* <button
-          onClick={() => {
-            setFreeMode(!freeMode);
-          }}>
-          Свободный режим: {freeMode ? "включен" : "выключен"}
-        </button> */}
-      </div>
+
       <style jsx>{`
         .App {
           background: linear-gradient(90deg, #29323c 0%, #485563 100%);
           width: 100vw;
           height: 100vh;
+        }
+
+        .controlPanel {
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 300px;
+          height: 100vh;
+          background: linear-gradient(90deg, #485563 0%, #29323c 100%);
+          border: 5px solid #ffffff88;
         }
 
         .board {
@@ -426,7 +482,7 @@ const App = () => {
           /* max-height: 800px; */
           position: absolute;
           top: calc(50vh - 200px);
-          left: calc(50vw - 200px);
+          left: 350px;
           /* background-color: #fff; */
           display: grid;
           /* grid-template-columns: repeat(8, 1fr); */
@@ -520,11 +576,11 @@ const App = () => {
         }
 
         .boardSizeBtns {
-          position: absolute;
           bottom: 20px;
           left: calc(50vw - 90px);
           display: flex;
           flex-direction: row;
+          align-items: center;
         }
 
         .boardSizeBtn {
@@ -545,6 +601,8 @@ const App = () => {
         }
 
         .boardSizeBtns span {
+          color: white;
+          padding: 0 10px;
         }
 
         .stats {
