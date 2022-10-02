@@ -1,8 +1,11 @@
-//TODO режим максимального счета за время
-//TODO режим максимального счета за ходы
+//DONE режим максимального счета за время
+//DONE режим максимального счета за ходы
 //TODO режим свободных ходов
 //TODO режим разного веса фигур
 //TODO режим двух игроков
+//TODO перемешать
+//TODO реализовать умную генерацию доски
+//TODO переписать проверку матчей под совпадение двух подряд фишек
 //DONE панель управления
 //DONE режим пяти цветов
 //DONE счет ходов
@@ -114,10 +117,24 @@ const App = () => {
       : classes[Math.floor(Math.random() * classes.length)];
   };
 
+  // const populateBoard = () => {
+  //   const rawPieces = [];
+  //   for (let i = 0; i < boardSize * boardSize; i++) {
+  //     rawPieces.push(getRandomPiece());
+  //   }
+  //   setCurrentPieces(rawPieces);
+  // };
+
   const populateBoard = () => {
     const rawPieces = [];
     for (let i = 0; i < boardSize * boardSize; i++) {
       rawPieces.push(getRandomPiece());
+      while (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) {
+        rawPieces[i] = getRandomPiece();
+      }
+      while (i > 2 * boardSize && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize]) {
+        rawPieces[i] = getRandomPiece();
+      }
     }
     // console.log(rawPieces);
 
@@ -297,7 +314,7 @@ const App = () => {
       (draggedPiece == targetPieceIndex - 1 && draggedPiece % boardSize != boardSize - 1) ||
       (draggedPiece - 1 == targetPieceIndex && draggedPiece % boardSize != 0) ||
       draggedPiece - boardSize == targetPieceIndex ||
-      draggedPiece == targetPieceIndex - boardSize
+      (draggedPiece == targetPieceIndex - boardSize && 1)
     ) {
       swapPieces(draggedPiece, targetPieceIndex);
     }
@@ -421,7 +438,8 @@ const App = () => {
               setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
               setMovesMade(0);
               setCount(0);
-              setReplay(!replay);
+              // setReplay(!replay);
+              setGameOver(false);
             }
           }}>
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
@@ -434,7 +452,8 @@ const App = () => {
                 setConstraintGamemode(constraintGamemode === "regular" ? "moves" : "regular");
                 setMovesMade(0);
                 setCount(0);
-                setReplay(!replay);
+                // setReplay(!replay);
+                setGameOver(false);
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
