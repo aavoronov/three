@@ -4,7 +4,7 @@
 //TODO режим разного веса фигур
 //TODO режим двух игроков
 //TODO перемешать
-//TODO реализовать умную генерацию доски
+//DONE реализовать умную генерацию доски
 //TODO переписать проверку матчей под совпадение двух подряд фишек
 //DONE панель управления
 //DONE режим пяти цветов
@@ -104,7 +104,7 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(180);
   const [colorGamemode, setColorGamemode] = useState("regular");
   const [constraintGamemode, setConstraintGamemode] = useState("regular");
-  const [movesLeft, setMovesLeft] = useState(2);
+  const [movesLeft, setMovesLeft] = useState(20);
   const [gameOver, setGameOver] = useState(false);
   const [replay, setReplay] = useState(false);
 
@@ -117,21 +117,10 @@ const App = () => {
       : classes[Math.floor(Math.random() * classes.length)];
   };
 
-  // const populateBoard = () => {
-  //   const rawPieces = [];
-  //   for (let i = 0; i < boardSize * boardSize; i++) {
-  //     rawPieces.push(getRandomPiece());
-  //   }
-  //   setCurrentPieces(rawPieces);
-  // };
-
   const populateBoard = () => {
     const rawPieces = [];
     for (let i = 0; i < boardSize * boardSize; i++) {
       rawPieces.push(getRandomPiece());
-      // while (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) {
-      //   rawPieces[i] = getRandomPiece();
-      // }
       while (
         (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) ||
         (i > 2 * boardSize && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize])
@@ -139,8 +128,6 @@ const App = () => {
         rawPieces[i] = getRandomPiece();
       }
     }
-    // console.log(rawPieces);
-
     setCurrentPieces(rawPieces);
   };
 
@@ -301,7 +288,7 @@ const App = () => {
     setMovesMade(movesMade + 1);
     !movesMade && setTimeElapsed(0);
     !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
-    !movesMade && constraintGamemode === "time" && setTimeLeft(10);
+    !movesMade && constraintGamemode === "time" && setTimeLeft(180);
     setMovesLeft(movesLeft - 1);
   };
 
@@ -522,7 +509,7 @@ const App = () => {
             onClick={() => {
               setReplay(!replay);
               setGameOver(false);
-              setMovesLeft(2);
+              setMovesLeft(20);
               setMovesMade(0);
               setCount(0);
             }}>
