@@ -101,7 +101,7 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(180);
   const [colorGamemode, setColorGamemode] = useState("regular");
   const [constraintGamemode, setConstraintGamemode] = useState("regular");
-  const [movesLeft, setMovesLeft] = useState(20);
+  const [movesLeft, setMovesLeft] = useState(2);
   const [gameOver, setGameOver] = useState(false);
   const [replay, setReplay] = useState(false);
 
@@ -324,7 +324,7 @@ const App = () => {
   }, [timeElapsed]);
 
   useEffect(() => {
-    if (timeLeft === 0 || movesLeft === 0) {
+    if ((constraintGamemode === "time" && timeLeft === 0) || (constraintGamemode === "moves" && movesLeft === 0)) {
       setGameOver(true);
     }
   }, [timeLeft, movesLeft]);
@@ -421,6 +421,7 @@ const App = () => {
               setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
               setMovesMade(0);
               setCount(0);
+              setReplay(!replay);
             }
           }}>
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
@@ -433,6 +434,7 @@ const App = () => {
                 setConstraintGamemode(constraintGamemode === "regular" ? "moves" : "regular");
                 setMovesMade(0);
                 setCount(0);
+                setReplay(!replay);
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
@@ -446,6 +448,8 @@ const App = () => {
                 setConstraintGamemode(constraintGamemode === "regular" ? "time" : "regular");
                 setMovesMade(0);
                 setCount(0);
+                // setReplay(!replay);
+                setGameOver(false);
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
@@ -496,7 +500,7 @@ const App = () => {
             onClick={() => {
               setReplay(!replay);
               setGameOver(false);
-              setMovesLeft(20);
+              setMovesLeft(2);
               setMovesMade(0);
               setCount(0);
             }}>
