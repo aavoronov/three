@@ -123,7 +123,7 @@ const App = () => {
       rawPieces.push(getRandomPiece());
       while (
         (i % boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) ||
-        (i > 2 * boardSize && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize])
+        (i > 2 * boardSize - 1 && rawPieces[i - boardSize] === rawPieces[i - 2 * boardSize] && rawPieces[i] === rawPieces[i - boardSize])
       ) {
         rawPieces[i] = getRandomPiece();
       }
