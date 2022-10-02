@@ -3,6 +3,7 @@
 //TODO режим свободных ходов
 //TODO режим разного веса фигур
 //TODO режим двух игроков
+//DONE панель управления
 //DONE режим пяти цветов
 //DONE счет ходов
 //DONE починить счет
@@ -97,13 +98,18 @@ const App = () => {
   const [movesMade, setMovesMade] = useState(0);
   const [count, setCount] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [gamemode, setGamemode] = useState("regular");
+  const [timeLeft, setTimeLeft] = useState(180);
+  const [colorGamemode, setColorGamemode] = useState("regular");
+  const [constraintGamemode, setConstraintGamemode] = useState("regular");
+  const [movesLeft, setMovesLeft] = useState(20);
+  const [gameOver, setGameOver] = useState(false);
+  const [replay, setReplay] = useState(false);
 
   const rowGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index);
   const columnGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index * boardSize);
 
   const getRandomPiece = () => {
-    return gamemode === "fiveColors"
+    return colorGamemode === "fiveColors"
       ? classesFiveColors[Math.floor(Math.random() * classesFiveColors.length)]
       : classes[Math.floor(Math.random() * classes.length)];
   };
@@ -274,6 +280,9 @@ const App = () => {
     setCurrentPieces([...currentPieces]);
     setMovesMade(movesMade + 1);
     !movesMade && setTimeElapsed(0);
+    !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
+    !movesMade && constraintGamemode === "time" && setTimeLeft(10);
+    setMovesLeft(movesLeft - 1);
   };
 
   const dragStart = (event) => {
@@ -300,16 +309,25 @@ const App = () => {
   useEffect(() => {
     populateBoard();
     // console.log(currentPieces);
-  }, [boardSize, gamemode]);
+  }, [boardSize, colorGamemode, constraintGamemode, replay]);
 
   useEffect(() => {
     const timeIncrement = setInterval(() => {
-      setTimeElapsed(timeElapsed + 1);
+      if (!gameOver) {
+        setTimeElapsed(timeElapsed + 1);
+        constraintGamemode === "time" && setTimeLeft(timeLeft - 1);
+      }
     }, 1000);
     return () => {
       clearInterval(timeIncrement);
     };
   }, [timeElapsed]);
+
+  useEffect(() => {
+    if (timeLeft === 0 || movesLeft === 0) {
+      setGameOver(true);
+    }
+  }, [timeLeft, movesLeft]);
 
   // const InitialWork = () => {
   //   useEffect(() => {
@@ -400,64 +418,121 @@ const App = () => {
         <button
           onClick={() => {
             if (window.confirm("Сменить режим? Счет будет обнулен")) {
-              setGamemode(gamemode === "regular" ? "fiveColors" : "regular");
+              setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
               setMovesMade(0);
               setCount(0);
             }
           }}>
-          {gamemode === "regular" ? "Режим пяти цветов" : "Обычный режим"}
+          {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
         </button>
-      </div>
-      {movesMade && (
-        <div className='stats'>
-          <span>Режим: {gamemode === "regular" ? "обычный" : gamemode === "fiveColors" ? "пять цветов" : null}</span>
-          <span>
-            Счет: {count}
-            {count > 1000 && ". Сумасшедший!"}
-          </span>
-          <span
+
+        {constraintGamemode !== "time" ? (
+          <button
             onClick={() => {
-              setMovesMade(movesMade + 20);
+              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+                setConstraintGamemode(constraintGamemode === "regular" ? "moves" : "regular");
+                setMovesMade(0);
+                setCount(0);
+              }
             }}>
-            Время: {timeElapsed >= 3600 && Math.floor(timeElapsed / 3600) + ":"}
-            {timeElapsed % 3600 < 600 && 0}
-            {Math.floor((timeElapsed % 3600) / 60)}:{timeElapsed % 60 < 10 && 0}
-            {timeElapsed % 60}
-            {timeElapsed > 3600 && ". Безумец!"}
-          </span>
-          <span>
-            Ходов сделано: {movesMade}
-            {movesMade > 100 && ". Невероятно!"}
-          </span>
-        </div>
-      )}
-      <div
-        className='board'
-        style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
-        {currentPieces.map((e, i) => (
-          <span
-            className={"piece " + e}
-            key={i}
-            data-key={i}
-            draggable={true}
-            onDragOver={(e) => {
-              e.preventDefault();
-            }}
-            onDragEnter={(e) => {
-              e.preventDefault();
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-            }}
-            onDrop={dragDrop}
-            onDragStart={dragStart}
-            onDragEnd={dragEnd}>
-            {/* <span className='index'>{i}</span> */}
-          </span>
-        ))}
-        {/* <PopulateBoard /> */}
+            {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
+          </button>
+        ) : null}
+
+        {constraintGamemode !== "moves" ? (
+          <button
+            onClick={() => {
+              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+                setConstraintGamemode(constraintGamemode === "regular" ? "time" : "regular");
+                setMovesMade(0);
+                setCount(0);
+              }
+            }}>
+            {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
+          </button>
+        ) : null}
+      </div>
+      <div className='stats'>
+        <span>
+          Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
+          {constraintGamemode === "moves" ? ", ограниченные ходы" : constraintGamemode === "time" ? ", ограниченное время" : null}
+        </span>
+        {movesMade > 0 ? (
+          <>
+            <span>
+              Счет: {count}
+              {count > 1000 && ". Сумасшедший!"}
+            </span>
+            {constraintGamemode !== "time" ? (
+              <span>
+                Время: {timeElapsed >= 3600 && Math.floor(timeElapsed / 3600) + ":"}
+                {timeElapsed % 3600 < 600 && 0}
+                {Math.floor((timeElapsed % 3600) / 60)}:{timeElapsed % 60 < 10 && 0}
+                {timeElapsed % 60}
+                {timeElapsed > 3600 && ". Безумец!"}
+              </span>
+            ) : !gameOver ? (
+              <span>
+                Осталось времени: 0{Math.floor(timeLeft / 60)}:{timeLeft % 60 < 10 && 0}
+                {timeLeft % 60}
+              </span>
+            ) : (
+              <span>Время вышло!</span>
+            )}
+            {constraintGamemode !== "moves" ? (
+              <span>
+                Ходов сделано: {movesMade}
+                {movesMade > 100 && ". Невероятно!"}
+              </span>
+            ) : !gameOver ? (
+              <span>Ходов осталось: {movesLeft}</span>
+            ) : (
+              <span>Ходы закончились!</span>
+            )}
+          </>
+        ) : null}
+        {gameOver && (
+          <button
+            onClick={() => {
+              setReplay(!replay);
+              setGameOver(false);
+              setMovesLeft(20);
+              setMovesMade(0);
+              setCount(0);
+            }}>
+            Переиграть
+          </button>
+        )}
       </div>
 
+      {!gameOver && (
+        <div
+          className='board'
+          style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
+          {currentPieces.map((e, i) => (
+            <span
+              className={"piece " + e}
+              key={i}
+              data-key={i}
+              draggable={true}
+              onDragOver={(e) => {
+                e.preventDefault();
+              }}
+              onDragEnter={(e) => {
+                e.preventDefault();
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+              }}
+              onDrop={dragDrop}
+              onDragStart={dragStart}
+              onDragEnd={dragEnd}>
+              {/* <span className='index'>{i}</span> */}
+            </span>
+          ))}
+          {/* <PopulateBoard /> */}
+        </div>
+      )}
       <style jsx>{`
         .App {
           background: linear-gradient(90deg, #29323c 0%, #485563 100%);
@@ -473,6 +548,9 @@ const App = () => {
           height: 100vh;
           background: linear-gradient(90deg, #485563 0%, #29323c 100%);
           border: 5px solid #ffffff88;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
         }
 
         .board {
