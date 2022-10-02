@@ -293,8 +293,10 @@ const App = () => {
   };
 
   const dragStart = (event) => {
-    console.log(event.target.attributes["data-key"].nodeValue);
-    setDraggedPiece(event.target.attributes["data-key"].nodeValue);
+    if (!gameOver) {
+      console.log(event.target.attributes["data-key"].nodeValue);
+      setDraggedPiece(event.target.attributes["data-key"].nodeValue);
+    }
   };
   const dragDrop = (event) => {
     // console.log(event);
@@ -518,34 +520,33 @@ const App = () => {
         )}
       </div>
 
-      {!gameOver && (
-        <div
-          className='board'
-          style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
-          {currentPieces.map((e, i) => (
-            <span
-              className={"piece " + e}
-              key={i}
-              data-key={i}
-              draggable={true}
-              onDragOver={(e) => {
-                e.preventDefault();
-              }}
-              onDragEnter={(e) => {
-                e.preventDefault();
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-              }}
-              onDrop={dragDrop}
-              onDragStart={dragStart}
-              onDragEnd={dragEnd}>
-              {/* <span className='index'>{i}</span> */}
-            </span>
-          ))}
-          {/* <PopulateBoard /> */}
-        </div>
-      )}
+      <div
+        className='board'
+        style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
+        {currentPieces.map((e, i) => (
+          <span
+            className={"piece " + e}
+            key={i}
+            data-key={i}
+            draggable={true}
+            onDragOver={(e) => {
+              e.preventDefault();
+            }}
+            onDragEnter={(e) => {
+              e.preventDefault();
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault();
+            }}
+            onDrop={dragDrop}
+            onDragStart={dragStart}
+            onDragEnd={dragEnd}>
+            {/* <span className='index'>{i}</span> */}
+          </span>
+        ))}
+        {/* <PopulateBoard /> */}
+      </div>
+
       <style jsx>{`
         .App {
           background: linear-gradient(90deg, #29323c 0%, #485563 100%);
