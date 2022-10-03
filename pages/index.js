@@ -518,6 +518,8 @@ const App = () => {
             onClick={() => {
               if (sizeHasChanged) {
                 setBoardSize(boardSize + 1);
+                setMovesMade(0);
+                setCount(0);
               } else {
                 if (window.confirm("Изменить размер доски? Счет будет обнулен")) {
                   setBoardSize(boardSize + 1);
