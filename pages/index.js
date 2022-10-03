@@ -1,11 +1,11 @@
-//DONE режим максимального счета за время
-//DONE режим максимального счета за ходы
-//TODO режим свободных ходов
+//TODO режим свободных/строгих ходов
 //TODO режим разного веса фигур
-//TODO режим двух игроков
 //TODO перемешать
 //TODO свайп на телефоне
 // ? TODO переписать проверку матчей под совпадение двух подряд фишек
+//DONE режим максимального счета за время
+//DONE режим максимального счета за ходы
+//DONE режим двух игроков
 //DONE реализовать умную генерацию доски
 //DONE панель управления
 //DONE режим пяти цветов
@@ -385,19 +385,19 @@ const App = () => {
   }, [boardSize, colorGamemode, constraintGamemode, replay]);
 
   useEffect(() => {
-    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
-      setTimeout(() => {
-        setTurn(2);
-        setMovesLeft(3);
-      }, 3000);
-    }
-    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber < 5) {
-      setTimeout(() => {
-        setTurn(1);
-        setMovesLeft(3);
-        setRoundNumber(roundNumber + 1);
-      }, 3000);
-    }
+    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
+    //   setTimeout(() => {
+    //     setTurn(2);
+    //     setMovesLeft(3);
+    //   }, 3000);
+    // }
+    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber < 5) {
+    //   setTimeout(() => {
+    //     setTurn(1);
+    //     setMovesLeft(3);
+    //     setRoundNumber(roundNumber + 1);
+    //   }, 3000);
+    // }
     if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber === 5) {
       setGameOver(true);
     }
@@ -626,9 +626,29 @@ const App = () => {
             {constraintGamemode === "multiplayer" ? (
               <div className='twoPlayerStatsWrap'>
                 <div className='twoPlayersStats'>
-                  <span style={turn === 1 ? { color: "green" } : { color: "white" }}>Игрок 1 - счет: {count}</span>{" "}
+                  <span style={turn === 1 ? { color: "green" } : { color: "white" }}>Игрок 1 - счет: {count}</span>
                   <span style={turn === 2 ? { color: "green" } : { color: "white" }}>Игрок 2 - счет: {count2}</span>
                 </div>
+                {movesLeft === 0 && turn === 1 && (
+                  <button
+                    onClick={() => {
+                      setTurn(2);
+                      setMovesLeft(3);
+                    }}>
+                    Передать ход игроку 2
+                  </button>
+                )}
+                {movesLeft === 0 && turn === 2 && roundNumber < 5 && (
+                  <button
+                    onClick={() => {
+                      setTurn(1);
+                      setMovesLeft(3);
+                      setRoundNumber(roundNumber + 1);
+                    }}>
+                    Передать ход игроку 1
+                  </button>
+                )}
+
                 {gameOver && (
                   <span style={{ color: "green" }}>
                     {count > count2 ? "Победитель: игрок 1!" : count === count2 ? "Ничья!" : "Победитель: игрок 2!"}
