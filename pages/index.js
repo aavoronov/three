@@ -15,6 +15,8 @@
 
 // import "./index.css";
 import React, { useState, useEffect } from "react";
+import Head from "next/head";
+import Script from "next/script";
 // import Draggable from "react-draggable";
 
 // const rowsTest = [
@@ -465,6 +467,12 @@ const App = () => {
 
   return (
     <div className='App'>
+      <Head>
+        <title>Три в ряд</title>
+        <link rel='icon' href='/favicon.ico' />
+        <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
+      </Head>
+      <Script src='/DragDropTouch.js'></Script>
       <div className='controlPanel'>
         <div className='boardSizeBtns'>
           <button
@@ -876,6 +884,46 @@ const App = () => {
           flex-direction: row;
           justify-content: space-between;
           align-items: center;
+        }
+
+        @media screen and (max-width: 768px) {
+          .App {
+            overflow: hidden;
+            height: 90vh;
+          }
+          .board {
+            /* display: none; */
+            left: 20px;
+            max-width: 400px;
+            max-height: 400px;
+            height: 80vw !important;
+            width: 80vw !important;
+          }
+          .piece {
+            width: 100%;
+            height: 100%;
+            max-width: 45px;
+            max-height: 45px;
+          }
+          .triangle {
+            background-size: 95%;
+          }
+          .star {
+            background-size: 95%;
+          }
+          .pentagon {
+            background-size: 95%;
+          }
+          .diamond {
+            width: 80%;
+            height: 80%;
+            max-width: 36px;
+            max-height: 36px;
+          }
+          .controlPanel {
+            width: 0;
+            display: none;
+          }
         }
       `}</style>
     </div>
