@@ -4,8 +4,9 @@
 //TODO режим разного веса фигур
 //TODO режим двух игроков
 //TODO перемешать
+//TODO свайп на телефоне
+// ? TODO переписать проверку матчей под совпадение двух подряд фишек
 //DONE реализовать умную генерацию доски
-//TODO переписать проверку матчей под совпадение двух подряд фишек
 //DONE панель управления
 //DONE режим пяти цветов
 //DONE счет ходов
@@ -107,9 +108,9 @@ const App = () => {
   const [movesLeft, setMovesLeft] = useState(20);
   const [gameOver, setGameOver] = useState(false);
   const [replay, setReplay] = useState(false);
-
-  const rowGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index);
-  const columnGeneral = (i) => [...Array(boardSize)].map((item, index) => i + index * boardSize);
+  const [count2, setCount2] = useState(0);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [turn, setTurn] = useState(1);
 
   const getRandomPiece = () => {
     return colorGamemode === "fiveColors"
@@ -140,7 +141,8 @@ const App = () => {
         // console.log(i + "t");
       }
 
-      const row = rowGeneral(i);
+      // const row = rowGeneral(i);
+      const row = [i, i + 1, i + 2, i + 3, i + 4];
       // console.log(row);
 
       const currentType = currentPieces[i];
@@ -171,9 +173,42 @@ const App = () => {
     }
   };
 
+  // const checkForHorizontalMatches = () => {
+  //   for (let i = 0; i < boardSize * boardSize - 2; i++) {
+  //     if (i % boardSize === 6) {
+  //       i += 2;
+  //     }
+  //     const row = [i, i + 1, i + 2, i + 3, i + 4];
+  //     const currentType = currentPieces[i];
+
+  //     for (let j = row.length; j > 2; j--) {
+  //       let currentRow = row.slice(0, j);
+  //       // if (rowOfThree.every((item) => currentPieces[item] === currentType)) {
+  //       //   rowOfThree.forEach((index) => (currentPieces[index] = ""));
+  //       //   console.log(i + " " + rowOfThree.length + "h " + currentType);
+  //       // }
+  //       if (
+  //         currentRow.every((piece) => currentPieces[piece] === currentType) &&
+  //         currentRow[currentRow.length - 1] % boardSize >= currentRow.length - 1
+  //         // currentRow[0] % boardSize <= boardSize - currentRow.length
+  //       ) {
+  //         // console.log(currentRow);
+  //         currentRow.forEach((index) => {
+  //           // currentPieces[index] = "";
+  //           // console.log(index);
+  //           indices.add(index);
+  //           // console.log(indices);
+  //         });
+  //         console.log(i + " " + currentRow.length + "h " + currentType);
+  //       }
+  //     }
+  //   }
+  // };
+
   const checkForVerticalMatches = () => {
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
-      const column = columnGeneral(i);
+      // const column = columnGeneral(i);
+      const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
       const currentType = currentPieces[i];
 
       if (currentType) {
@@ -196,41 +231,21 @@ const App = () => {
     }
   };
 
-  // const removeAllIndices = (array) => {
-  //   let copy = [...array];
-  //   // console.log(copy);
-  //   indices.forEach((item) => {
-  //     copy[item] = "";
-  //   });
-  //   // for (let item in indices) {
-  //   //   copy[item] = "";
-  //   // }
-  //   // console.log(copy);
-  //   return copy;
-  // };
-
   const removeAllIndices = () => {
     indices.forEach((item) => {
       if (!currentPieces[item].includes("shrink")) {
         currentPieces[item] = currentPieces[item] + " shrink";
       }
-      // currentPieces[item] = "";
-      // indices.delete(item);
     });
 
-    movesMade && setCount(count + indices.size);
+    if (movesMade && turn === 1) {
+      setCount(count + indices.size);
+    }
+    if (movesMade && turn === 2) {
+      setCount2(count2 + indices.size);
+    }
 
-    // setTimeout(() => {
-    //   indices.forEach((item) => {
-    //     currentPieces[item] = "";
-    //     setCurrentPieces([...currentPieces]);
-    //     console.log(item);
-    //     firstMoveMade && setCount(count + 1);
-    //     // currentPieces[item] = "";
-    //     // indices.delete(item);
-    //   });
-    // }, 100);
-
+    // movesMade && setCount(count + indices.size);
     setTimeout(() => {
       for (let i = 0; i < boardSize * boardSize; i++) {
         if (currentPieces[i].includes("shrink")) {
@@ -239,11 +254,6 @@ const App = () => {
         }
       }
     }, 100);
-
-    // for (let item in indices) {
-    //   copy[item] = "";
-    // }
-    // console.log(copy);
   };
 
   const moveIntoSquareBelow = () => {
@@ -290,10 +300,18 @@ const App = () => {
     !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
     !movesMade && constraintGamemode === "time" && setTimeLeft(180);
     setMovesLeft(movesLeft - 1);
+    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
+    //   setTurn(2);
+    //   setMovesLeft(3);
+    // }
+    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2) {
+    //   setTurn(1);
+    //   setMovesLeft(3);
+    // }
   };
 
   const dragStart = (event) => {
-    if (!gameOver) {
+    if (!gameOver && movesLeft) {
       console.log(event.target.attributes["data-key"].nodeValue);
       setDraggedPiece(event.target.attributes["data-key"].nodeValue);
     }
@@ -301,14 +319,60 @@ const App = () => {
   const dragDrop = (event) => {
     // console.log(event);
     // console.log(event.currentTarget);
-    const targetPieceIndex = event.target.attributes["data-key"].nodeValue;
+    const targetPiece = event.target.attributes["data-key"].nodeValue;
     if (
-      (draggedPiece == targetPieceIndex - 1 && draggedPiece % boardSize != boardSize - 1) ||
-      (draggedPiece - 1 == targetPieceIndex && draggedPiece % boardSize != 0) ||
-      draggedPiece - boardSize == targetPieceIndex ||
-      (draggedPiece == targetPieceIndex - boardSize && 1)
+      (draggedPiece == targetPiece - 1 && draggedPiece % boardSize != boardSize - 1) ||
+      (draggedPiece - 1 == targetPiece && draggedPiece % boardSize != 0) ||
+      draggedPiece - boardSize == targetPiece ||
+      draggedPiece == targetPiece - boardSize
     ) {
-      swapPieces(draggedPiece, targetPieceIndex);
+      swapPieces(draggedPiece, targetPiece);
+
+      // if (
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 2] &&
+      //     currentPieces[draggedPiece] === currentPieces[targetPiece - 1]) ||
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 1] &&
+      //     currentPieces[draggedPiece] === currentPieces[targetPiece + 1]) ||
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece + 1] && currentPieces[draggedPiece] === currentPieces[targetPiece + 2])
+      // ) {
+      //   swapPieces(draggedPiece, targetPiece);
+      //   console.log("1");
+      // }
+
+      // if (
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 2] &&
+      //     currentPieces[targetPiece] === currentPieces[draggedPiece - 1]) ||
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 1] &&
+      //     currentPieces[targetPiece] === currentPieces[draggedPiece + 1]) ||
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece + 1] && currentPieces[targetPiece] === currentPieces[draggedPiece + 2])
+      // ) {
+      //   swapPieces(draggedPiece, targetPiece);
+      //   console.log("2");
+      // }
+
+      // if (
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 2 * boardSize] &&
+      //     currentPieces[draggedPiece] === currentPieces[targetPiece - boardSize]) ||
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - boardSize] &&
+      //     currentPieces[draggedPiece] === currentPieces[targetPiece + boardSize]) ||
+      //   (currentPieces[draggedPiece] === currentPieces[targetPiece + boardSize] &&
+      //     currentPieces[draggedPiece] === currentPieces[targetPiece + 2 * boardSize])
+      // ) {
+      //   swapPieces(draggedPiece, targetPiece);
+      //   console.log("3");
+      // }
+
+      // if (
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 2 * boardSize] &&
+      //     currentPieces[targetPiece] === currentPieces[draggedPiece - boardSize]) ||
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - boardSize] &&
+      //     currentPieces[targetPiece] === currentPieces[draggedPiece + boardSize]) ||
+      //   (currentPieces[targetPiece] === currentPieces[draggedPiece + boardSize] &&
+      //     currentPieces[targetPiece] === currentPieces[draggedPiece + 2 * boardSize])
+      // ) {
+      //   swapPieces(draggedPiece, targetPiece);
+      //   console.log("4");
+      // }
     }
   };
   const dragEnd = () => {
@@ -319,6 +383,25 @@ const App = () => {
     populateBoard();
     // console.log(currentPieces);
   }, [boardSize, colorGamemode, constraintGamemode, replay]);
+
+  useEffect(() => {
+    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
+      setTimeout(() => {
+        setTurn(2);
+        setMovesLeft(3);
+      }, 3000);
+    }
+    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber < 5) {
+      setTimeout(() => {
+        setTurn(1);
+        setMovesLeft(3);
+        setRoundNumber(roundNumber + 1);
+      }, 3000);
+    }
+    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber === 5) {
+      setGameOver(true);
+    }
+  }, [movesLeft, turn]);
 
   useEffect(() => {
     const timeIncrement = setInterval(() => {
@@ -437,11 +520,11 @@ const App = () => {
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
         </button>
 
-        {constraintGamemode !== "time" ? (
+        {constraintGamemode === "regular" ? (
           <button
             onClick={() => {
               if (window.confirm("Сменить режим? Счет будет обнулен")) {
-                setConstraintGamemode(constraintGamemode === "regular" ? "moves" : "regular");
+                setConstraintGamemode("moves");
                 setMovesMade(0);
                 setCount(0);
                 // setReplay(!replay);
@@ -452,11 +535,11 @@ const App = () => {
           </button>
         ) : null}
 
-        {constraintGamemode !== "moves" ? (
+        {constraintGamemode === "regular" ? (
           <button
             onClick={() => {
               if (window.confirm("Сменить режим? Счет будет обнулен")) {
-                setConstraintGamemode(constraintGamemode === "regular" ? "time" : "regular");
+                setConstraintGamemode("time");
                 setMovesMade(0);
                 setCount(0);
                 // setReplay(!replay);
@@ -466,18 +549,64 @@ const App = () => {
             {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
           </button>
         ) : null}
+
+        {constraintGamemode === "regular" ? (
+          <button
+            onClick={() => {
+              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+                setConstraintGamemode("multiplayer");
+                setMovesMade(0);
+                setCount(0);
+                setCount2(0);
+                setRoundNumber(1);
+                setTurn(1);
+                setMovesLeft(3);
+                // setReplay(!replay);
+                setGameOver(false);
+              }
+            }}>
+            {constraintGamemode === "regular" ? "Два игрока" : "Ограничения: обычный режим"}
+          </button>
+        ) : null}
+        {constraintGamemode !== "regular" ? (
+          <button
+            onClick={() => {
+              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+                setConstraintGamemode("regular");
+                setMovesMade(0);
+                setCount(0);
+                // setReplay(!replay);
+                setGameOver(false);
+              }
+            }}>
+            Обычный режим
+          </button>
+        ) : null}
       </div>
       <div className='stats'>
         <span>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
-          {constraintGamemode === "moves" ? ", ограниченные ходы" : constraintGamemode === "time" ? ", ограниченное время" : null}
+          {constraintGamemode === "moves"
+            ? ", ограниченные ходы"
+            : constraintGamemode === "time"
+            ? ", ограниченное время"
+            : constraintGamemode === "multiplayer"
+            ? ", два игрока"
+            : null}
         </span>
+        {constraintGamemode === "multiplayer" && (
+          <span>
+            Раунд {roundNumber}/5. Очередь: <span style={{ color: "green" }}>игрок {turn}</span>. Осталось ходов: {movesLeft}.
+          </span>
+        )}
         {movesMade > 0 ? (
           <>
-            <span>
-              Счет: {count}
-              {count > 1000 && ". Сумасшедший!"}
-            </span>
+            {constraintGamemode !== "multiplayer" && (
+              <span>
+                Счет: {count}
+                {count > 1000 && ". Сумасшедший!"}
+              </span>
+            )}
             {constraintGamemode !== "time" ? (
               <span>
                 Время: {timeElapsed >= 3600 && Math.floor(timeElapsed / 3600) + ":"}
@@ -494,7 +623,19 @@ const App = () => {
             ) : (
               <span>Время вышло!</span>
             )}
-            {constraintGamemode !== "moves" ? (
+            {constraintGamemode === "multiplayer" ? (
+              <div className='twoPlayerStatsWrap'>
+                <div className='twoPlayersStats'>
+                  <span style={turn === 1 ? { color: "green" } : { color: "white" }}>Игрок 1 - счет: {count}</span>{" "}
+                  <span style={turn === 2 ? { color: "green" } : { color: "white" }}>Игрок 2 - счет: {count2}</span>
+                </div>
+                {gameOver && (
+                  <span style={{ color: "green" }}>
+                    {count > count2 ? "Победитель: игрок 1!" : count === count2 ? "Ничья!" : "Победитель: игрок 2!"}
+                  </span>
+                )}
+              </div>
+            ) : constraintGamemode !== "moves" ? (
               <span>
                 Ходов сделано: {movesMade}
                 {movesMade > 100 && ". Невероятно!"}
@@ -702,6 +843,18 @@ const App = () => {
           color: white;
           display: flex;
           flex-direction: column;
+          align-items: center;
+        }
+        .twoPlayerStatsWrap {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        .twoPlayersStats {
+          width: 400px;
+          display: flex;
+          flex-direction: row;
+          justify-content: space-between;
           align-items: center;
         }
       `}</style>
