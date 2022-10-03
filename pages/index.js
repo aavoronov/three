@@ -113,6 +113,7 @@ const App = () => {
   const [count2, setCount2] = useState(0);
   const [roundNumber, setRoundNumber] = useState(1);
   const [turn, setTurn] = useState(1);
+  const [menuIsOpen, setMenuIsOpen] = useState(false);
 
   const getRandomPiece = () => {
     return colorGamemode === "fiveColors"
@@ -473,7 +474,23 @@ const App = () => {
         <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
       </Head>
       <Script src='/DragDropTouch.js'></Script>
-      <div className='controlPanel'>
+      <button
+        className='openMenuBtn'
+        onClick={() => {
+          setMenuIsOpen(true);
+        }}>
+        &gt;
+      </button>
+      {menuIsOpen && (
+        <div
+          className='overlay'
+          onClick={() => {
+            setMenuIsOpen(false);
+          }}></div>
+      )}
+      <div
+        className='controlPanel'
+        style={menuIsOpen ? { display: "flex", zIndex: 10, width: 300, transition: "all 0.2s", height: "90vh" } : null}>
         <div className='boardSizeBtns'>
           <button
             className='boardSizeBtn'
@@ -722,6 +739,23 @@ const App = () => {
           width: 100vw;
           height: 100vh;
         }
+        .openMenuBtn {
+          width: 40px;
+          height: 40px;
+          font-size: 30px;
+          line-height: 40px;
+          border-radius: 50%;
+          display: none;
+        }
+        .overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          background-color: rgba(0, 0, 0, 0.5);
+          z-index: 5;
+        }
 
         .controlPanel {
           position: absolute;
@@ -890,6 +924,9 @@ const App = () => {
           .App {
             overflow: hidden;
             height: 90vh;
+          }
+          .openMenuBtn {
+            display: block;
           }
           .board {
             /* display: none; */
