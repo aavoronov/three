@@ -100,7 +100,6 @@ const App = () => {
   const [boardSize, setBoardSize] = useState(8);
   const [sizeHasChanged, setSizeHasChanged] = useState(false);
   const [draggedPiece, setDraggedPiece] = useState(null);
-  const [freeMode, setFreeMode] = useState(false);
   const [movesMade, setMovesMade] = useState(0);
   const [count, setCount] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
@@ -114,6 +113,8 @@ const App = () => {
   const [roundNumber, setRoundNumber] = useState(1);
   const [turn, setTurn] = useState(1);
   const [menuIsOpen, setMenuIsOpen] = useState(false);
+  const [freeMode, setFreeMode] = useState(false);
+  const [differentValueMode, setDifferentValueMode] = useState(false);
 
   const getRandomPiece = () => {
     return colorGamemode === "fiveColors"
@@ -235,6 +236,21 @@ const App = () => {
   };
 
   const removeAllIndices = () => {
+    let score = () => {
+      if (!differentValueMode) {
+        return indices.size;
+      } else {
+        let raw = 0;
+        indices.forEach((item) => {
+          raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1;
+          // console.log(currentPieces[item].split(" ")[0]);
+          // console.log(classes.indexOf(currentPieces[item]));
+          // console.log(classes.indexOf(currentPieces[item].split(" ")[0]));
+        });
+        // console.log(raw);
+        return raw;
+      }
+    };
     indices.forEach((item) => {
       if (!currentPieces[item].includes("shrink")) {
         currentPieces[item] = currentPieces[item] + " shrink";
@@ -242,7 +258,9 @@ const App = () => {
     });
 
     if (movesMade && turn === 1) {
-      setCount(count + indices.size);
+      // setCount(count + indices.size);
+
+      setCount(count + score());
     }
     if (movesMade && turn === 2) {
       setCount2(count2 + indices.size);
@@ -315,7 +333,7 @@ const App = () => {
 
   const dragStart = (event) => {
     if (!gameOver && movesLeft) {
-      console.log(event.target.attributes["data-key"].nodeValue);
+      // console.log(event.target.attributes["data-key"].nodeValue);
       setDraggedPiece(event.target.attributes["data-key"].nodeValue);
     }
   };
@@ -385,7 +403,7 @@ const App = () => {
   useEffect(() => {
     populateBoard();
     // console.log(currentPieces);
-  }, [boardSize, colorGamemode, constraintGamemode, replay]);
+  }, [boardSize, colorGamemode, constraintGamemode, replay, differentValueMode]);
 
   useEffect(() => {
     // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
@@ -459,7 +477,7 @@ const App = () => {
       // }, 2000);
       moveIntoSquareBelow();
       // recursivelyDropColumn();
-      console.log("ended");
+      // console.log("ended");
     }, 250);
     return () => {
       clearInterval(timer);
@@ -613,9 +631,56 @@ const App = () => {
             Обычный режим
           </button>
         ) : null}
+
+        <button
+          onClick={() => {
+            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              setDifferentValueMode(!differentValueMode);
+              setMovesMade(0);
+              setCount(0);
+              setCount2(0);
+              setRoundNumber(1);
+              setTurn(1);
+              constraintGamemode === "multiplayer" && setMovesLeft(3);
+              constraintGamemode === "moves" && setMovesLeft(20);
+              // setReplay(!replay);
+              setGameOver(false);
+            }
+          }}>
+          {!differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
+        </button>
+        {differentValueMode && (
+          <div className='valueRules'>
+            <div className='rule'>
+              <span className='piece square' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 1</span>
+            </div>
+            <div className='rule'>
+              <span className='piece triangle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 4</span>
+            </div>
+
+            <div className='rule'>
+              <span className='piece diamond' style={{ width: 35, height: 35, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 2</span>
+            </div>
+            <div className='rule'>
+              <span className='piece pentagon' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 5</span>
+            </div>
+            <div className='rule'>
+              <span className='piece circle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 3</span>
+            </div>
+            <div className='rule'>
+              <span className='piece star' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= 6</span>
+            </div>
+          </div>
+        )}
       </div>
       <div className='stats'>
-        <span>
+        <span className='gamemode'>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
           {constraintGamemode === "moves"
             ? ", ограниченные ходы"
@@ -624,9 +689,10 @@ const App = () => {
             : constraintGamemode === "multiplayer"
             ? ", два игрока"
             : null}
+          {differentValueMode && ", разная ценность"}
         </span>
         {constraintGamemode === "multiplayer" && (
-          <span>
+          <span className='gamemode'>
             Раунд {roundNumber}/5. Очередь: <span style={{ color: "green" }}>игрок {turn}</span>. Осталось ходов: {movesLeft}.
           </span>
         )}
@@ -718,6 +784,7 @@ const App = () => {
         {currentPieces.map((e, i) => (
           <span
             className={"piece " + e}
+            // data-value={differentValueMode ? classes.indexOf(e) + 1 : 1}
             key={i}
             data-key={i}
             draggable={true}
@@ -744,6 +811,18 @@ const App = () => {
           background: linear-gradient(90deg, #29323c 0%, #485563 100%);
           width: 100vw;
           height: 100vh;
+        }
+        .valueRules {
+          margin-top: 100px;
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          column-gap: 10px;
+          row-gap: 10px;
+        }
+        .rule {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
         }
         .openMenuBtn {
           width: 40px;
@@ -911,6 +990,12 @@ const App = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          width: 400px;
+          margin-left: 350px;
+        }
+        .gamemode {
+          text-align: center;
+          font-size: 18px;
         }
         .twoPlayerStatsWrap {
           display: flex;
