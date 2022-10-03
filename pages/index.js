@@ -787,8 +787,6 @@ const App = () => {
           /* background-color: #fff; */
           display: grid;
           /* grid-template-columns: repeat(8, 1fr); */
-          column-gap: 5px;
-          row-gap: 5px;
         }
 
         .piece {
@@ -811,16 +809,16 @@ const App = () => {
         }
 
         .square {
-          width: 100%;
-          height: 100%;
+          width: 90%;
+          height: 90%;
           background: #e74c3c;
         }
 
         .diamond {
           background: #8e44ad;
           transform: rotate(45deg) !important;
-          width: 80%;
-          height: 80%;
+          width: 70%;
+          height: 70%;
           margin: auto;
         }
 
@@ -839,8 +837,8 @@ const App = () => {
         }
 
         .circle {
-          width: 100%;
-          height: 100%;
+          width: 90%;
+          height: 90%;
           background: #3498db;
           border-radius: 50%;
           transform: rotate(360deg);
