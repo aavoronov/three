@@ -1043,7 +1043,7 @@ const App = () => {
             background-size: 90%;
           }
           .pentagon {
-            background-size: 90%;
+            background-size: 85%;
           }
           .diamond {
             width: 75%;
