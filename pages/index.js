@@ -1017,6 +1017,7 @@ const App = () => {
           }
           .stats {
             margin-left: 20px;
+            max-width: 80vw;
           }
           .openMenuBtn {
             display: block;
@@ -1039,16 +1040,24 @@ const App = () => {
             background-size: 95%;
           }
           .star {
-            background-size: 95%;
+            background-size: 90%;
           }
           .pentagon {
-            background-size: 95%;
+            background-size: 90%;
           }
           .diamond {
-            width: 80%;
-            height: 80%;
+            width: 75%;
+            height: 75%;
             max-width: 36px;
             max-height: 36px;
+          }
+          .circle {
+            width: 90%;
+            height: 90%;
+          }
+          .square {
+            width: 90%;
+            height: 90%;
           }
           .controlPanel {
             width: 0;
