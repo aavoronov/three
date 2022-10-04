@@ -1,5 +1,7 @@
 //TODO режим свободных/строгих ходов
 //TODO перемешать
+//TODO экстра мувы
+//TODO сервер, доска рекордов ограниченных режимов
 // ? TODO переписать проверку матчей под совпадение двух подряд фишек
 //DONE режим разного веса фигур
 //DONE свайп на телефоне
@@ -138,7 +140,7 @@ const App = () => {
 
   let indices = new Set();
 
-  const checkForHorizontalMatches = () => {
+  const checkForHorizontalMatches = (currentPieces) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
       if (i % boardSize === 6) {
         i += 2;
@@ -171,6 +173,7 @@ const App = () => {
               // console.log(indices);
             });
             console.log(i + " " + currentRow.length + "h " + currentType);
+            return true;
           }
         }
       }
@@ -209,7 +212,7 @@ const App = () => {
   //   }
   // };
 
-  const checkForVerticalMatches = () => {
+  const checkForVerticalMatches = (currentPieces) => {
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
@@ -229,6 +232,7 @@ const App = () => {
               // console.log(indices);
             });
             console.log(i + " " + currentColumn.length + "v " + currentType);
+            return true;
           }
         }
       }
@@ -347,53 +351,12 @@ const App = () => {
       draggedPiece - boardSize == targetPiece ||
       draggedPiece == targetPiece - boardSize
     ) {
-      swapPieces(draggedPiece, targetPiece);
-
-      // if (
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 2] &&
-      //     currentPieces[draggedPiece] === currentPieces[targetPiece - 1]) ||
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 1] &&
-      //     currentPieces[draggedPiece] === currentPieces[targetPiece + 1]) ||
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece + 1] && currentPieces[draggedPiece] === currentPieces[targetPiece + 2])
-      // ) {
-      //   swapPieces(draggedPiece, targetPiece);
-      //   console.log("1");
-      // }
-
-      // if (
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 2] &&
-      //     currentPieces[targetPiece] === currentPieces[draggedPiece - 1]) ||
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 1] &&
-      //     currentPieces[targetPiece] === currentPieces[draggedPiece + 1]) ||
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece + 1] && currentPieces[targetPiece] === currentPieces[draggedPiece + 2])
-      // ) {
-      //   swapPieces(draggedPiece, targetPiece);
-      //   console.log("2");
-      // }
-
-      // if (
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - 2 * boardSize] &&
-      //     currentPieces[draggedPiece] === currentPieces[targetPiece - boardSize]) ||
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece - boardSize] &&
-      //     currentPieces[draggedPiece] === currentPieces[targetPiece + boardSize]) ||
-      //   (currentPieces[draggedPiece] === currentPieces[targetPiece + boardSize] &&
-      //     currentPieces[draggedPiece] === currentPieces[targetPiece + 2 * boardSize])
-      // ) {
-      //   swapPieces(draggedPiece, targetPiece);
-      //   console.log("3");
-      // }
-
-      // if (
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - 2 * boardSize] &&
-      //     currentPieces[targetPiece] === currentPieces[draggedPiece - boardSize]) ||
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece - boardSize] &&
-      //     currentPieces[targetPiece] === currentPieces[draggedPiece + boardSize]) ||
-      //   (currentPieces[targetPiece] === currentPieces[draggedPiece + boardSize] &&
-      //     currentPieces[targetPiece] === currentPieces[draggedPiece + 2 * boardSize])
-      // ) {
-      //   swapPieces(draggedPiece, targetPiece);
-      //   console.log("4");
-      // }
+      let piecesToCheck = [...currentPieces];
+      let temp = currentPieces[draggedPiece];
+      piecesToCheck[draggedPiece] = currentPieces[targetPiece];
+      piecesToCheck[targetPiece] = temp;
+      if (checkForVerticalMatches(piecesToCheck) || checkForHorizontalMatches(piecesToCheck) || freeMode)
+        swapPieces(draggedPiece, targetPiece);
     }
   };
   const dragEnd = () => {
@@ -466,8 +429,8 @@ const App = () => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      checkForHorizontalMatches();
-      checkForVerticalMatches();
+      checkForHorizontalMatches(currentPieces);
+      checkForVerticalMatches(currentPieces);
       // console.log(indices);
       // console.log(removeAllIndices(currentPieces));
       removeAllIndices();
@@ -549,12 +512,6 @@ const App = () => {
             }}>
             +
           </button>
-          {/* <button
-          onClick={() => {
-            setFreeMode(!freeMode);
-          }}>
-          Свободный режим: {freeMode ? "включен" : "выключен"}
-        </button> */}
         </div>
         <button
           onClick={() => {
@@ -567,6 +524,18 @@ const App = () => {
             }
           }}>
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
+        </button>
+        <button
+          onClick={() => {
+            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              setFreeMode(!freeMode);
+              setMovesMade(0);
+              setCount(0);
+              // setReplay(!replay);
+              setGameOver(false);
+            }
+          }}>
+          {!freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}
         </button>
 
         {constraintGamemode === "regular" ? (
@@ -653,6 +622,7 @@ const App = () => {
       <div className='stats'>
         <span className='gamemode'>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
+          {freeMode && ", свободные ходы"}
           {constraintGamemode === "moves"
             ? ", ограниченные ходы"
             : constraintGamemode === "time"
@@ -740,7 +710,9 @@ const App = () => {
             onClick={() => {
               setReplay(!replay);
               setGameOver(false);
-              setMovesLeft(20);
+              {
+                constraintGamemode === "multiplayer" ? setMovesLeft(3) : setMovesLeft(20);
+              }
               setMovesMade(0);
               setCount(0);
             }}>
