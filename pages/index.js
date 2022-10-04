@@ -263,7 +263,7 @@ const App = () => {
       setCount(count + score());
     }
     if (movesMade && turn === 2) {
-      setCount2(count2 + indices.size);
+      setCount2(count2 + score());
     }
 
     // movesMade && setCount(count + indices.size);
