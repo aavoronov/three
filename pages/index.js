@@ -649,35 +649,6 @@ const App = () => {
           }}>
           {!differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
         </button>
-        {differentValueMode && (
-          <div className='valueRules'>
-            <div className='rule'>
-              <span className='piece square' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 1</span>
-            </div>
-            <div className='rule'>
-              <span className='piece triangle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 4</span>
-            </div>
-
-            <div className='rule'>
-              <span className='piece diamond' style={{ width: 35, height: 35, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 2</span>
-            </div>
-            <div className='rule'>
-              <span className='piece pentagon' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 5</span>
-            </div>
-            <div className='rule'>
-              <span className='piece circle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 3</span>
-            </div>
-            <div className='rule'>
-              <span className='piece star' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= 6</span>
-            </div>
-          </div>
-        )}
       </div>
       <div className='stats'>
         <span className='gamemode'>
@@ -805,6 +776,36 @@ const App = () => {
         ))}
         {/* <PopulateBoard /> */}
       </div>
+      {differentValueMode && (
+        <div className='valueRules'>
+          <div className='rule'>
+            <span className='piece square' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 1</span>
+          </div>
+
+          <div className='rule'>
+            <span className='piece diamond' style={{ width: 35, height: 35, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 2</span>
+          </div>
+          <div className='rule'>
+            <span className='piece circle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 3</span>
+          </div>
+          <div className='rule'>
+            <span className='piece triangle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 4</span>
+          </div>
+          <div className='rule'>
+            <span className='piece pentagon' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 5</span>
+          </div>
+
+          <div className='rule'>
+            <span className='piece star' style={{ width: 40, height: 40, marginRight: 10 }}></span>
+            <span style={{ color: "white" }}>= 6</span>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .App {
@@ -813,9 +814,12 @@ const App = () => {
           height: 100vh;
         }
         .valueRules {
+          position: absolute;
+          bottom: 50px;
+          left: 420px;
           margin-top: 100px;
           display: grid;
-          grid-template-columns: repeat(2, 1fr);
+          grid-template-columns: repeat(3, 1fr);
           column-gap: 10px;
           row-gap: 10px;
         }
@@ -1014,6 +1018,10 @@ const App = () => {
           .App {
             overflow: hidden;
             height: 90vh;
+          }
+          .valueRules {
+            left: 100px;
+            bottom: 75px;
           }
           .stats {
             margin-left: 20px;
