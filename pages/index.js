@@ -657,6 +657,7 @@ const App = () => {
               if (constraintGamemode === "multiplayer") {
                 setCount2(0);
                 setRoundNumber(1);
+                setMovesLeft(3);
               }
             }}>
             Переиграть
