@@ -5,7 +5,10 @@
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
 //TODO случайная цена фишек и соответствующие правила
-// ? TODO переписать проверку матчей под совпадение двух подряд фишек
+//! TODO стрелки
+//! TODO бомбы
+//! TODO молнии
+// ? refactor переписать проверку матчей под совпадение двух подряд фишек
 //DONE режим свободных/строгих ходов
 //DONE режим разного веса фигур
 //DONE свайп на телефоне
@@ -647,12 +650,14 @@ const App = () => {
             onClick={() => {
               setReplay(!replay);
               setGameOver(false);
-              {
-                constraintGamemode === "multiplayer" ? setMovesLeft(3) : setMovesLeft(20);
-              }
               setMovesMade(0);
               setCount(0);
               setTurn(1);
+
+              if (constraintGamemode === "multiplayer") {
+                setCount2(0);
+                setRoundNumber(1);
+              }
             }}>
             Переиграть
           </button>
