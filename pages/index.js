@@ -1,8 +1,12 @@
-//TODO режим свободных/строгих ходов
 //TODO перемешать
+//TODO PWA
+//TODO анимации
+//TODO автоопределение конца хода
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
+//TODO случайная цена фишек и соответствующие правила
 // ? TODO переписать проверку матчей под совпадение двух подряд фишек
+//DONE режим свободных/строгих ходов
 //DONE режим разного веса фигур
 //DONE свайп на телефоне
 //DONE режим максимального счета за время
@@ -20,73 +24,6 @@ import React, { useState, useEffect } from "react";
 import Head from "next/head";
 import Script from "next/script";
 // import Draggable from "react-draggable";
-
-// const rowsTest = [
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "pentagon",
-//   "star",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "circle",
-//   "triangle",
-//   "pentagon",
-//   "star",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "triangle",
-//   "pentagon",
-//   "star",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "pentagon",
-//   "star",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "star",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "square",
-//   "triangle",
-//   "pentagon",
-//   "star",
-//   "pentagon",
-//   "square",
-//   "square",
-//   "square",
-//   "triangle",
-//   "triangle",
-//   "pentagon",
-//   "star",
-// ];
 
 // const boardSize = 8;
 // const classes = () =>
@@ -715,6 +652,7 @@ const App = () => {
               }
               setMovesMade(0);
               setCount(0);
+              setTurn(1);
             }}>
             Переиграть
           </button>
