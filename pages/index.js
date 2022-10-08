@@ -1,14 +1,14 @@
 //TODO перемешать
-//TODO PWA
 //TODO анимации
 //TODO автоопределение конца хода
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
-//TODO случайная цена фишек и соответствующие правила
-//! TODO стрелки
-//! TODO бомбы
-//! TODO молнии
+// ! TODO стрелки
+// ! TODO бомбы
+// ! TODO молнии
 // ? refactor переписать проверку матчей под совпадение двух подряд фишек
+//DONE случайная цена фишек и соответствующие правила
+//DONE PWA
 //DONE режим свободных/строгих ходов
 //DONE режим разного веса фигур
 //DONE свайп на телефоне
@@ -34,7 +34,27 @@ import Script from "next/script";
 //     ? ["square", "diamond", "circle", "triangle", "pentagon", "star"]
 //     : ["square", "diamond", "circle", "triangle", "pentagon"];
 
-const classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
+let classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
+// const classesInRandomOrder = () => {
+//   let newArr = [];
+//   while (classes.length !== 0) {
+//     let index = Math.floor(Math.random() * classes.length);
+//     // let newClasses = [...classes]
+//     // console.log(index);
+//     newArr.push(classes[index]);
+//     classes = classes.splice(0, index).concat(classes.splice(index, classes.length));
+//     console.log(classes);
+//   }
+//   console.log(newArr);
+//   return newArr;
+// };
+
+const classesInRandomOrder = () => {
+  classes.sort(() => Math.random() - 0.5);
+};
+
+classesInRandomOrder();
+// console.log(classesInRandomOrder());
 const classesFiveColors = ["square", "diamond", "circle", "triangle", "pentagon"];
 
 const App = () => {
@@ -694,32 +714,12 @@ const App = () => {
       </div>
       {differentValueMode && (
         <div className='valueRules'>
-          <div className='rule'>
-            <span className='piece square' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 1</span>
-          </div>
-
-          <div className='rule'>
-            <span className='piece diamond' style={{ width: 35, height: 35, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 2</span>
-          </div>
-          <div className='rule'>
-            <span className='piece circle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 3</span>
-          </div>
-          <div className='rule'>
-            <span className='piece triangle' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 4</span>
-          </div>
-          <div className='rule'>
-            <span className='piece pentagon' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 5</span>
-          </div>
-
-          <div className='rule'>
-            <span className='piece star' style={{ width: 40, height: 40, marginRight: 10 }}></span>
-            <span style={{ color: "white" }}>= 6</span>
-          </div>
+          {classes.map((item, index) => (
+            <div className='rule' key={index}>
+              <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
+              <span style={{ color: "white" }}>= {index + 1}</span>
+            </div>
+          ))}
         </div>
       )}
 
