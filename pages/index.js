@@ -2,10 +2,15 @@
 //TODO анимации
 //TODO автоопределение конца хода
 //TODO экстра мувы
+//TODO разделить логику ходов
 //TODO сервер, доска рекордов ограниченных режимов
+//TODO баг с первой фишкой
 // ! TODO стрелки
 // ! TODO бомбы
 // ! TODO молнии
+//!bug первая ячейка не падает
+//!bug бомбы образуются из плюса с предыдущих рядов
+//!bug спецфишки не отрабатывают в первом столбце
 // ? refactor переписать проверку матчей под совпадение двух подряд фишек
 //DONE случайная цена фишек и соответствующие правила
 //DONE PWA
@@ -35,19 +40,6 @@ import Script from "next/script";
 //     : ["square", "diamond", "circle", "triangle", "pentagon"];
 
 let classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
-// const classesInRandomOrder = () => {
-//   let newArr = [];
-//   while (classes.length !== 0) {
-//     let index = Math.floor(Math.random() * classes.length);
-//     // let newClasses = [...classes]
-//     // console.log(index);
-//     newArr.push(classes[index]);
-//     classes = classes.splice(0, index).concat(classes.splice(index, classes.length));
-//     console.log(classes);
-//   }
-//   console.log(newArr);
-//   return newArr;
-// };
 
 const classesInRandomOrder = () => {
   classes.sort(() => Math.random() - 0.5);
@@ -77,6 +69,7 @@ const App = () => {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [freeMode, setFreeMode] = useState(false);
   const [differentValueMode, setDifferentValueMode] = useState(false);
+  const [validatingMove, setValidatingMove] = useState(false);
 
   const getRandomPiece = () => {
     return colorGamemode === "fiveColors"
@@ -99,104 +92,377 @@ const App = () => {
   };
 
   let indices = new Set();
+  let arrowsVertical = new Set();
+  let arrowsHorizontal = new Set();
+  let bombs = new Set();
+  let lightnings = new Set();
 
-  const checkForHorizontalMatches = (currentPieces) => {
-    for (let i = 0; i < boardSize * boardSize - 2; i++) {
-      if (i % boardSize === 6) {
-        i += 2;
-        // console.log(i + "t");
-      }
-
-      // const row = rowGeneral(i);
-      const row = [i, i + 1, i + 2, i + 3, i + 4];
-      // console.log(row);
-
-      const currentType = currentPieces[i];
-
-      if (currentType) {
-        for (let j = row.length; j > 2; j--) {
-          let currentRow = row.slice(0, j);
-          // if (rowOfThree.every((item) => currentPieces[item] === currentType)) {
-          //   rowOfThree.forEach((index) => (currentPieces[index] = ""));
-          //   console.log(i + " " + rowOfThree.length + "h " + currentType);
-          // }
-          if (
-            currentRow.every((piece) => currentPieces[piece] === currentType) &&
-            currentRow[currentRow.length - 1] % boardSize >= currentRow.length - 1
-            // currentRow[0] % boardSize <= boardSize - currentRow.length
-          ) {
-            // console.log(currentRow);
-            currentRow.forEach((index) => {
-              // currentPieces[index] = "";
-              // console.log(index);
-              indices.add(index);
-              // console.log(indices);
-            });
-            console.log(i + " " + currentRow.length + "h " + currentType);
-            return true;
-          }
-        }
-      }
-    }
-  };
-
-  // const checkForHorizontalMatches = () => {
+  // const checkForHorizontalMatches = (currentPieces) => {
   //   for (let i = 0; i < boardSize * boardSize - 2; i++) {
-  //     if (i % boardSize === 6) {
+  //     if (i % boardSize === boardSize - 2) {
   //       i += 2;
+  //       // console.log(i + "t");
   //     }
+
+  //     // const row = rowGeneral(i);
   //     const row = [i, i + 1, i + 2, i + 3, i + 4];
+  //     // console.log(row);
+
   //     const currentType = currentPieces[i];
 
-  //     for (let j = row.length; j > 2; j--) {
-  //       let currentRow = row.slice(0, j);
-  //       // if (rowOfThree.every((item) => currentPieces[item] === currentType)) {
-  //       //   rowOfThree.forEach((index) => (currentPieces[index] = ""));
-  //       //   console.log(i + " " + rowOfThree.length + "h " + currentType);
-  //       // }
-  //       if (
-  //         currentRow.every((piece) => currentPieces[piece] === currentType) &&
-  //         currentRow[currentRow.length - 1] % boardSize >= currentRow.length - 1
-  //         // currentRow[0] % boardSize <= boardSize - currentRow.length
-  //       ) {
-  //         // console.log(currentRow);
-  //         currentRow.forEach((index) => {
-  //           // currentPieces[index] = "";
-  //           // console.log(index);
-  //           indices.add(index);
-  //           // console.log(indices);
-  //         });
-  //         console.log(i + " " + currentRow.length + "h " + currentType);
+  //     if (currentType) {
+  //       for (let j = row.length; j > 2; j--) {
+  //         let currentRow = row.slice(0, j);
+  //         // if (rowOfThree.every((item) => currentPieces[item] === currentType)) {
+  //         //   rowOfThree.forEach((index) => (currentPieces[index] = ""));
+  //         //   console.log(i + " " + rowOfThree.length + "h " + currentType);
+  //         // }
+  //         if (
+  //           currentRow.every((piece) => currentPieces[piece] === currentType) &&
+  //           currentRow[currentRow.length - 1] % boardSize >= currentRow.length - 1
+  //           // currentRow[0] % boardSize <= boardSize - currentRow.length
+  //         ) {
+  //           // console.log(currentRow);
+  //           currentRow.forEach((index) => {
+  //             // currentPieces[index] = "";
+  //             // console.log(index);
+  //             indices.add(index);
+  //             // console.log(indices);
+  //           });
+  //           console.log(i + " " + currentRow.length + "h " + currentType);
+  //           return true;
+  //         }
   //       }
   //     }
   //   }
   // };
 
-  const checkForVerticalMatches = (currentPieces) => {
+  const checkForCorners = (currentPieces) => {
+    for (let i = 0; i < boardSize * boardSize - 2; i++) {
+      const upperLeft = [i, i + 1, i + 2, i + boardSize, i + 2 * boardSize];
+      const lowerLeft = [i, i + boardSize, i + 2 * boardSize, i + 2 * boardSize + 1, i + 2 * boardSize + 2];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (upperLeft.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("upper left");
+          bombs.add(i);
+          // return true;
+        }
+        if (lowerLeft.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("lower left");
+          bombs.add(i + 2 * boardSize);
+
+          // return true;
+        }
+      }
+    }
+
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
+      const upperRight = [i, i + 1, i + 2, i + 2 + boardSize, i + 2 + 2 * boardSize];
+      const lowerRight = [i, i + 1, i + 2, i + 2 - boardSize, i + 2 - 2 * boardSize];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (upperRight.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("upper right");
+          bombs.add(i + 2);
+
+          // return true;
+        }
+        if (lowerRight.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("lower right");
+          bombs.add(i + 2);
+
+          // return true;
+        }
+      }
+    }
+  };
+
+  const checkForTsAndPluses = (currentPieces) => {
+    for (let i = 0; i < boardSize * boardSize - 2; i++) {
+      const upper = [i, i + 1, i + 2, i + 1 + boardSize, i + 1 + 2 * boardSize];
+      const left = [i, i + boardSize, i + 2 * boardSize, i + boardSize + 1, i + boardSize + 2];
+      const lower = [i, i + 1, i + 2, i + 1 - boardSize, i + 1 - 2 * boardSize];
+      const right = [i, i + 1, i + 2, i + 2 - boardSize, i + 2 + boardSize];
+      const plus = [i, i + 1, i + 2, i + 1 - boardSize, i + 1 + boardSize];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (upper.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("upper");
+          bombs.add(i + 1);
+          // return true;
+        }
+        if (left.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("left");
+          bombs.add(i + boardSize);
+          // return true;
+        }
+        if (lower.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("lower");
+          bombs.add(i + 1);
+          // return true;
+        }
+        if (right.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("right");
+          bombs.add(i + 2);
+          // return true;
+        }
+        if (plus.every((piece) => currentPieces[piece] === currentType)) {
+          console.log("plus");
+          bombs.add(i + 1);
+
+          // return true;
+        }
+      }
+    }
+  };
+
+  const explodeSpecials = (array) => {
+    {
+      !validatingMove &&
+        array.forEach((item) => {
+          if (currentPieces[item].includes("arrowHorizontal")) {
+            arrowHorizontalExplode(item);
+          }
+          if (currentPieces[item].includes("arrowVertical")) {
+            arrowVerticalExplode(item);
+          }
+          if (currentPieces[item].includes("bomb")) {
+            bombExplode(item);
+          }
+          if (currentPieces[item].includes("lightning")) {
+            lightningExplode(3);
+          }
+        });
+    }
+  };
+
+  const checkForRowsOfFive = (currentPieces) => {
+    for (let i = 0; i < boardSize * boardSize - 4; i++) {
+      if (i % boardSize === boardSize - 4) {
+        i += 4;
+      }
+      const rowOfFive = [i, i + 1, i + 2, i + 3, i + 4];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (rowOfFive.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          rowOfFive.forEach((index) => {
+            indices.add(index);
+            explodeSpecials(rowOfFive);
+          });
+
+          // if (!rowOfFive.every((item) => {currentPieces[item]}))
+          lightnings.add(i);
+          console.log(i + " row of five " + currentType);
+          return true;
+        }
+      }
+    }
+  };
+
+  const checkForRowsOfFour = (currentPieces) => {
+    for (let i = 0; i < boardSize * boardSize - 3; i++) {
+      if (i % boardSize === boardSize - 3) {
+        i += 3;
+      }
+      const rowOfFour = [i, i + 1, i + 2, i + 3];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (rowOfFour.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          rowOfFour.forEach((index) => {
+            indices.add(index);
+            explodeSpecials(rowOfFour);
+          });
+          arrowsHorizontal.add(i);
+          console.log(i + " row of four " + currentType);
+          return true;
+        }
+      }
+    }
+  };
+
+  const checkForRowsOfThree = (currentPieces) => {
+    for (let i = 0; i < boardSize * boardSize - 2; i++) {
+      if (i % boardSize === boardSize - 2) {
+        i += 2;
+      }
+      const rowOfThree = [i, i + 1, i + 2];
+      const currentType = currentPieces[i];
+      if (currentType) {
+        if (rowOfThree.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          rowOfThree.forEach((index) => {
+            console.log(index);
+            indices.add(index);
+            explodeSpecials(rowOfThree);
+          });
+          console.log(i + " row of three " + currentType);
+          return true;
+        }
+      }
+    }
+  };
+
+  // const checkForVerticalMatches = (currentPieces) => {
+  //   for (let i = 0; i < boardSize * (boardSize - 2); i++) {
+  //     // const column = columnGeneral(i);
+  //     const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
+  //     const currentType = currentPieces[i];
+
+  //     if (currentType) {
+  //       for (let j = column.length; j >= 3; j--) {
+  //         let currentColumn = column.slice(0, j);
+  //         if (
+  //           currentColumn.every((piece) => currentPieces[piece] === currentType) &&
+  //           currentColumn[currentColumn.length - 1] <= currentPieces.length
+  //         ) {
+  //           // console.log(currentColumn);
+  //           currentColumn.forEach((index) => {
+  //             // currentPieces[index] = "";
+  //             indices.add(index);
+  //             // console.log(indices);
+  //           });
+  //           console.log(i + " " + currentColumn.length + "v " + currentType);
+  //           return true;
+  //         }
+  //       }
+  //     }
+  //   }
+  // };
+
+  const checkForColumnsOfFive = (currentPieces) => {
+    for (let i = 0; i < boardSize * (boardSize - 4); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
       const currentType = currentPieces[i];
 
       if (currentType) {
-        for (let j = column.length; j >= 3; j--) {
-          let currentColumn = column.slice(0, j);
-          if (
-            currentColumn.every((piece) => currentPieces[piece] === currentType) &&
-            currentColumn[currentColumn.length - 1] <= currentPieces.length
-          ) {
-            // console.log(currentColumn);
-            currentColumn.forEach((index) => {
-              // currentPieces[index] = "";
-              indices.add(index);
-              // console.log(indices);
-            });
-            console.log(i + " " + currentColumn.length + "v " + currentType);
-            return true;
-          }
+        if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          column.forEach((index) => {
+            indices.add(index);
+            explodeSpecials(column);
+          });
+          lightnings.add(i);
+          console.log(i + " column of five " + currentType);
+          return true;
         }
       }
     }
+  };
+
+  const checkForColumnsOfFour = (currentPieces) => {
+    for (let i = 0; i < boardSize * (boardSize - 3); i++) {
+      // const column = columnGeneral(i);
+      const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize];
+      const currentType = currentPieces[i];
+
+      if (currentType) {
+        if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          column.forEach((index) => {
+            indices.add(index);
+            explodeSpecials(column);
+          });
+          arrowsVertical.add(i);
+          console.log(i + " column of four " + currentType);
+          return true;
+        }
+      }
+    }
+  };
+
+  const checkForColumnsOfThree = (currentPieces) => {
+    for (let i = 0; i < boardSize * (boardSize - 2); i++) {
+      // const column = columnGeneral(i);
+      const column = [i, i + boardSize, i + 2 * boardSize];
+      const currentType = currentPieces[i];
+
+      if (currentType) {
+        if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
+          column.forEach((index) => {
+            indices.add(index);
+            explodeSpecials(column);
+          });
+          console.log(i + " column of three " + currentType);
+          return true;
+        }
+      }
+    }
+  };
+
+  //!ok
+  const arrowHorizontalExplode = (index) => {
+    let start = index;
+    while (start % boardSize > 0) {
+      start -= 1;
+      // console.log(start);
+    }
+    let row = [];
+    for (let i = 0; i < boardSize; i++) {
+      row.push(start);
+      start++;
+    }
+    // return row;
+    row.forEach((item) => indices.add(item));
+  };
+
+  //!ok
+  const arrowVerticalExplode = (index) => {
+    let start = index % boardSize;
+    let column = [];
+    for (let i = 0; i < boardSize; i++) {
+      column.push(start + i * boardSize);
+    }
+    // return column;
+    column.forEach((item) => indices.add(item));
+  };
+
+  // console.log(arrowVerticalExplode(35));
+
+  //!ok
+  const bombExplode = (i) => {
+    let pieces = [];
+    pieces.push([i - 2 * boardSize >= 0 && i - 2 * boardSize]);
+
+    pieces.push([
+      i - 1 - boardSize >= 0 && i % boardSize > 0 && i - 1 - boardSize,
+      i - boardSize >= 0 && i - boardSize,
+      i + 1 - boardSize >= 0 && i % boardSize < boardSize - 1 && i + 1 - boardSize,
+    ]);
+
+    pieces.push([
+      i % boardSize > 1 && i - 2,
+      i % boardSize > 0 && i - 1,
+      i,
+      i % boardSize < boardSize - 1 && i + 1,
+      i % boardSize < boardSize - 2 && i + 2,
+    ]);
+
+    pieces.push([
+      i - 1 + boardSize < boardSize * boardSize && i % boardSize > 0 && i - 1 + boardSize,
+      i + boardSize < boardSize * boardSize && i + boardSize,
+      i + 1 + boardSize < boardSize * boardSize && i % boardSize < boardSize - 1 && i + 1 + boardSize,
+    ]);
+
+    pieces.push([i + 2 * boardSize < boardSize * boardSize && i + 2 * boardSize]);
+
+    // return pieces.flat().filter((item) => item !== false);
+    pieces
+      .flat()
+      .filter((item) => item !== false)
+      .forEach((item) => indices.add(item));
+  };
+
+  //!ok
+  const lightningExplode = (num) => {
+    let idx = [];
+    currentPieces.map((el, index) => {
+      idx.push(index);
+    });
+    const shuffled = idx.sort(() => 0.5 - Math.random());
+
+    // return shuffled.slice(0, num);
+    // shuffled.slice(0, num);
+    shuffled.slice(0, num).forEach((item) => indices.add(item));
+    console.log(shuffled.slice(0, num));
   };
 
   const removeAllIndices = () => {
@@ -207,17 +473,42 @@ const App = () => {
         let raw = 0;
         indices.forEach((item) => {
           raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1;
-          // console.log(currentPieces[item].split(" ")[0]);
-          // console.log(classes.indexOf(currentPieces[item]));
-          // console.log(classes.indexOf(currentPieces[item].split(" ")[0]));
         });
         // console.log(raw);
         return raw;
       }
     };
     indices.forEach((item) => {
-      if (!currentPieces[item].includes("shrink")) {
+      if (
+        !currentPieces[item].includes("shrink") &&
+        !arrowsHorizontal.has(item) &&
+        !arrowsVertical.has(item) &&
+        !bombs.has(item) &&
+        !lightnings.has(item)
+      ) {
         currentPieces[item] = currentPieces[item] + " shrink";
+      }
+    });
+    lightnings.forEach((item) => {
+      currentPieces[item] = currentPieces[item] + " lightning";
+    });
+    bombs.forEach((item) => {
+      if (!currentPieces[item].includes("lightning")) {
+        currentPieces[item] = currentPieces[item] + " bomb";
+      }
+    });
+    arrowsHorizontal.forEach((item) => {
+      if (!currentPieces[item].includes("lightning") && !currentPieces[item].includes("bomb")) {
+        currentPieces[item] = currentPieces[item] + " arrowHorizontal";
+      }
+    });
+    arrowsVertical.forEach((item) => {
+      if (
+        !currentPieces[item].includes("lightning") &&
+        !currentPieces[item].includes("bomb") &&
+        !currentPieces[item].includes("arrowHorizontal")
+      ) {
+        currentPieces[item] = currentPieces[item] + " arrowVertical";
       }
     });
 
@@ -284,7 +575,8 @@ const App = () => {
     !movesMade && setTimeElapsed(0);
     !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
     !movesMade && constraintGamemode === "time" && setTimeLeft(180);
-    setMovesLeft(movesLeft - 1);
+    constraintGamemode === "moves" && setMovesLeft(movesLeft - 1);
+
     // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
     //   setTurn(2);
     //   setMovesLeft(3);
@@ -304,6 +596,7 @@ const App = () => {
   const dragDrop = (event) => {
     // console.log(event);
     // console.log(event.currentTarget);
+    setValidatingMove(true);
     const targetPiece = event.target.attributes["data-key"].nodeValue;
     if (
       (draggedPiece == targetPiece - 1 && draggedPiece % boardSize != boardSize - 1) ||
@@ -315,9 +608,20 @@ const App = () => {
       let temp = currentPieces[draggedPiece];
       piecesToCheck[draggedPiece] = currentPieces[targetPiece];
       piecesToCheck[targetPiece] = temp;
-      if (checkForVerticalMatches(piecesToCheck) || checkForHorizontalMatches(piecesToCheck) || freeMode)
+      if (
+        // checkForVerticalMatches(piecesToCheck) ||
+        // checkForHorizontalMatches(piecesToCheck) ||
+        checkForColumnsOfFive(piecesToCheck) ||
+        checkForColumnsOfFour(piecesToCheck) ||
+        checkForColumnsOfThree(piecesToCheck) ||
+        checkForRowsOfFive(piecesToCheck) ||
+        checkForRowsOfFour(piecesToCheck) ||
+        checkForRowsOfThree(piecesToCheck) ||
+        freeMode
+      )
         swapPieces(draggedPiece, targetPiece);
     }
+    setValidatingMove(false);
   };
   const dragEnd = () => {
     setDraggedPiece(null);
@@ -365,32 +669,19 @@ const App = () => {
     }
   }, [timeLeft, movesLeft]);
 
-  // const InitialWork = () => {
-  //   useEffect(() => {
-  //     const timer = setInterval(() => {
-  //       checkForHorizontalMatches();
-  //       checkForVerticalMatches();
-  //       // console.log(indices);
-  //       // console.log(removeAllIndices(currentPieces));
-  //       setCurrentPieces(removeAllIndices(currentPieces));
-  //       // console.log(currentPieces);
-  //       // setInterval(() => {
-  //       //   moveIntoSquareBelow();
-  //       // }, 2000);
-  //       moveIntoSquareBelow();
-  //     }, 100);
-  //     return () => {
-  //       clearInterval(timer);
-  //     };
-  //   }, []);
-  // };
-
-  // InitialWork();
-
   useEffect(() => {
     const timer = setInterval(() => {
-      checkForHorizontalMatches(currentPieces);
-      checkForVerticalMatches(currentPieces);
+      checkForCorners(currentPieces);
+      checkForTsAndPluses(currentPieces);
+      checkForRowsOfFive(currentPieces);
+      checkForRowsOfFour(currentPieces);
+      checkForRowsOfThree(currentPieces);
+      checkForColumnsOfFive(currentPieces);
+      checkForColumnsOfFour(currentPieces);
+      checkForColumnsOfThree(currentPieces);
+
+      // checkForHorizontalMatches(currentPieces);
+      // checkForVerticalMatches(currentPieces);
       // console.log(indices);
       // console.log(removeAllIndices(currentPieces));
       removeAllIndices();
@@ -580,7 +871,12 @@ const App = () => {
         </button>
       </div>
       <div className='stats'>
-        <span className='gamemode'>
+        <span
+          className='gamemode'
+          onClick={() => {
+            // console.log(bombExplode(0));
+            console.log(currentPieces[32].split(" ")[0]);
+          }}>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
           {freeMode && ", свободные ходы"}
           {constraintGamemode === "moves"
@@ -656,7 +952,7 @@ const App = () => {
             ) : constraintGamemode !== "moves" ? (
               <span>
                 Ходов сделано: {movesMade}
-                {movesMade > 100 && ". Невероятно!"}
+                {movesMade > 99 && ". Невероятно!"}
               </span>
             ) : !gameOver ? (
               <span>Ходов осталось: {movesLeft}</span>
@@ -773,6 +1069,7 @@ const App = () => {
           display: flex;
           flex-direction: column;
           align-items: center;
+          z-index: 100;
         }
 
         .board {
@@ -805,6 +1102,7 @@ const App = () => {
         .shrink {
           transform: scale(0.01);
           transform-origin: 50%;
+          transition: all 0.09s;
         }
 
         .square {
@@ -871,6 +1169,65 @@ const App = () => {
           background-image: url("/img/star.svg");
           background-size: 45px;
           transform: rotate(288deg);
+        }
+        .arrowHorizontal,
+        .arrowVertical,
+        .bomb,
+        .lightning {
+          width: 100%;
+          height: 100%;
+        }
+        .arrowHorizontal {
+          background-image: url("/img/arrowHorizontal.svg") !important;
+          background: none;
+          transform: rotate(0deg) !important;
+          background-repeat: no-repeat;
+          background-size: 100%;
+          background-position: 50%;
+        }
+        .arrowVertical {
+          background-image: url("/img/arrowVertical.svg") !important;
+          background: none;
+          transform: rotate(0deg) !important;
+          background-repeat: no-repeat;
+          background-size: 100%;
+          background-position: 50%;
+        }
+        .bomb {
+          background-image: url("/img/bomb.svg") !important;
+          background: none;
+          transform: rotate(0deg) !important;
+          background-repeat: no-repeat;
+          background-size: 100%;
+          background-position: 50%;
+        }
+        .lightning {
+          background-image: url("/img/lightning.svg") !important;
+          background: none;
+          transform: rotate(0deg) !important;
+          background-repeat: no-repeat;
+          background-size: 100%;
+          background-position: 50%;
+        }
+        .square.arrowHorizontal,
+        .square.arrowVertical,
+        .square.bomb,
+        .square.lightning {
+          filter: brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1235%) hue-rotate(335deg) brightness(94%) contrast(92%);
+        }
+
+        .diamond.arrowHorizontal,
+        .diamond.arrowVertical,
+        .diamond.bomb,
+        .diamond.lightning {
+          filter: brightness(0) saturate(100%) invert(33%) sepia(14%) saturate(4964%) hue-rotate(251deg) brightness(94%) contrast(87%);
+        }
+
+        .circle.arrowHorizontal,
+        .circle.arrowVertical,
+        .circle.bomb,
+        .circle.lightning {
+          filter: brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(2345%) hue-rotate(178deg) brightness(91%) contrast(88%);
         }
 
         .boardSizeBtns {
