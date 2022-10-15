@@ -1022,7 +1022,7 @@ const App = () => {
                   <span style={{ color: "green" }}>
                     {count > count2
                       ? "Победитель: игрок 1!"
-                      : count === 0
+                      : count2 === 0
                       ? "Вы вообще пытались?"
                       : count === count2
                       ? "Ничья!"
