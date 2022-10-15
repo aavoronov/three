@@ -101,14 +101,9 @@ const Lightning = (props) => (
 );
 
 let classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
-
-const classesInRandomOrder = () => {
-  classes.sort(() => Math.random() - 0.5);
-};
-
-classesInRandomOrder();
-// console.log(classesInRandomOrder());
 const classesFiveColors = ["square", "diamond", "circle", "triangle", "pentagon"];
+
+// console.log(classesInRandomOrder());
 
 const App = () => {
   const [currentPieces, setCurrentPieces] = useState([]);
@@ -133,6 +128,10 @@ const App = () => {
   const [freeMode, setFreeMode] = useState(false);
   const [differentValueMode, setDifferentValueMode] = useState(false);
   const [validatingMove, setValidatingMove] = useState(false);
+
+  const classesInRandomOrder = () => {
+    differentValueMode ? classes.sort(() => Math.random() - 0.5) : classes.sort(() => Math.random() - 0.5);
+  };
 
   const getRandomPiece = () => {
     return colorGamemode === "fiveColors"
@@ -502,7 +501,9 @@ const App = () => {
       } else {
         let raw = 0;
         indices.forEach((item) => {
-          raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1;
+          differentValueMode
+            ? (raw += classesFiveColors.indexOf(currentPieces[item].split(" ")[0]) + 1)
+            : (raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1);
         });
         // console.log(raw);
         return raw;
@@ -660,6 +661,8 @@ const App = () => {
   };
 
   useEffect(() => {
+    classesInRandomOrder();
+
     populateBoard();
     // console.log(currentPieces);
   }, [boardSize, freeMode, colorGamemode, constraintGamemode, replay, differentValueMode]);
@@ -1017,7 +1020,13 @@ const App = () => {
 
                 {gameOver && (
                   <span style={{ color: "green" }}>
-                    {count > count2 ? "Победитель: игрок 1!" : count === count2 ? "Ничья!" : "Победитель: игрок 2!"}
+                    {count > count2
+                      ? "Победитель: игрок 1!"
+                      : count === 0
+                      ? "Вы вообще пытались?"
+                      : count === count2
+                      ? "Ничья!"
+                      : "Победитель: игрок 2!"}
                   </span>
                 )}
               </div>
@@ -1106,12 +1115,19 @@ const App = () => {
 
         {differentValueMode && (
           <div className='valueRules'>
-            {classes.map((item, index) => (
-              <div className='rule' key={index}>
-                <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
-                <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
-              </div>
-            ))}
+            {colorGamemode === "fiveColors"
+              ? classesFiveColors.map((item, index) => (
+                  <div className='rule' key={index}>
+                    <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
+                    <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
+                  </div>
+                ))
+              : classes.map((item, index) => (
+                  <div className='rule' key={index}>
+                    <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
+                    <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
+                  </div>
+                ))}
           </div>
         )}
       </div>
