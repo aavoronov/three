@@ -1143,6 +1143,7 @@ const App = () => {
           border-radius: 10px;
           margin-bottom: 5px;
           width: 100%;
+          color: #29323c;
         }
 
         .board {
