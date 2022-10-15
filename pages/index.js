@@ -2,16 +2,17 @@
 //TODO анимации
 //TODO автоопределение конца хода
 //TODO экстра мувы
-//TODO разделить логику ходов
 //TODO сервер, доска рекордов ограниченных режимов
-//TODO баг с первой фишкой
-// ! TODO стрелки
-// ! TODO бомбы
-// ! TODO молнии
 //!bug первая ячейка не падает
-//!bug бомбы образуются из плюса с предыдущих рядов
 //!bug спецфишки не отрабатывают в первом столбце
-// ? refactor переписать проверку матчей под совпадение двух подряд фишек
+//? refactor переписать проверку матчей под совпадение двух подряд фишек
+//fixed фишки не успевают падать и схлопываются по 3 вместо 4
+//fixed бомбы образуются из плюса с предыдущих рядов
+//DONE режим админа
+//DONE разделить логику ходов
+//DONE стрелки
+//DONE бомбы
+//DONE молнии
 //DONE случайная цена фишек и соответствующие правила
 //DONE PWA
 //DONE режим свободных/строгих ходов
@@ -28,7 +29,7 @@
 //DONE формат времени
 
 // import "./index.css";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Head from "next/head";
 import Script from "next/script";
 // import Draggable from "react-draggable";
@@ -53,6 +54,7 @@ const App = () => {
   const [currentPieces, setCurrentPieces] = useState([]);
   const [boardSize, setBoardSize] = useState(8);
   const [sizeHasChanged, setSizeHasChanged] = useState(false);
+  const [modeHasChanged, setModeHasChanged] = useState(false);
   const [draggedPiece, setDraggedPiece] = useState(null);
   const [movesMade, setMovesMade] = useState(0);
   const [count, setCount] = useState(0);
@@ -60,6 +62,7 @@ const App = () => {
   const [timeLeft, setTimeLeft] = useState(180);
   const [colorGamemode, setColorGamemode] = useState("regular");
   const [constraintGamemode, setConstraintGamemode] = useState("regular");
+  const [adminMode, setAdminMode] = useState(false);
   const [movesLeft, setMovesLeft] = useState(20);
   const [gameOver, setGameOver] = useState(false);
   const [replay, setReplay] = useState(false);
@@ -97,48 +100,11 @@ const App = () => {
   let bombs = new Set();
   let lightnings = new Set();
 
-  // const checkForHorizontalMatches = (currentPieces) => {
-  //   for (let i = 0; i < boardSize * boardSize - 2; i++) {
-  //     if (i % boardSize === boardSize - 2) {
-  //       i += 2;
-  //       // console.log(i + "t");
-  //     }
-
-  //     // const row = rowGeneral(i);
-  //     const row = [i, i + 1, i + 2, i + 3, i + 4];
-  //     // console.log(row);
-
-  //     const currentType = currentPieces[i];
-
-  //     if (currentType) {
-  //       for (let j = row.length; j > 2; j--) {
-  //         let currentRow = row.slice(0, j);
-  //         // if (rowOfThree.every((item) => currentPieces[item] === currentType)) {
-  //         //   rowOfThree.forEach((index) => (currentPieces[index] = ""));
-  //         //   console.log(i + " " + rowOfThree.length + "h " + currentType);
-  //         // }
-  //         if (
-  //           currentRow.every((piece) => currentPieces[piece] === currentType) &&
-  //           currentRow[currentRow.length - 1] % boardSize >= currentRow.length - 1
-  //           // currentRow[0] % boardSize <= boardSize - currentRow.length
-  //         ) {
-  //           // console.log(currentRow);
-  //           currentRow.forEach((index) => {
-  //             // currentPieces[index] = "";
-  //             // console.log(index);
-  //             indices.add(index);
-  //             // console.log(indices);
-  //           });
-  //           console.log(i + " " + currentRow.length + "h " + currentType);
-  //           return true;
-  //         }
-  //       }
-  //     }
-  //   }
-  // };
-
   const checkForCorners = (currentPieces) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
+      if (i % boardSize === boardSize - 2) {
+        i += 2;
+      }
       const upperLeft = [i, i + 1, i + 2, i + boardSize, i + 2 * boardSize];
       const lowerLeft = [i, i + boardSize, i + 2 * boardSize, i + 2 * boardSize + 1, i + 2 * boardSize + 2];
       const currentType = currentPieces[i];
@@ -158,6 +124,9 @@ const App = () => {
     }
 
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
+      if (i % boardSize === boardSize - 2) {
+        i += 2;
+      }
       const upperRight = [i, i + 1, i + 2, i + 2 + boardSize, i + 2 + 2 * boardSize];
       const lowerRight = [i, i + 1, i + 2, i + 2 - boardSize, i + 2 - 2 * boardSize];
       const currentType = currentPieces[i];
@@ -180,6 +149,9 @@ const App = () => {
 
   const checkForTsAndPluses = (currentPieces) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
+      if (i % boardSize === boardSize - 2) {
+        i += 2;
+      }
       const upper = [i, i + 1, i + 2, i + 1 + boardSize, i + 1 + 2 * boardSize];
       const left = [i, i + boardSize, i + 2 * boardSize, i + boardSize + 1, i + boardSize + 2];
       const lower = [i, i + 1, i + 2, i + 1 - boardSize, i + 1 - 2 * boardSize];
@@ -217,24 +189,22 @@ const App = () => {
     }
   };
 
-  const explodeSpecials = (array) => {
-    {
-      !validatingMove &&
-        array.forEach((item) => {
-          if (currentPieces[item].includes("arrowHorizontal")) {
-            arrowHorizontalExplode(item);
-          }
-          if (currentPieces[item].includes("arrowVertical")) {
-            arrowVerticalExplode(item);
-          }
-          if (currentPieces[item].includes("bomb")) {
-            bombExplode(item);
-          }
-          if (currentPieces[item].includes("lightning")) {
-            lightningExplode(3);
-          }
-        });
+  const explodeSpecials = (item) => {
+    // !validatingMove &&
+    // array.forEach((item) => {
+    if (currentPieces[item].includes("arrowHorizontal")) {
+      arrowHorizontalExplode(item);
     }
+    if (currentPieces[item].includes("arrowVertical")) {
+      arrowVerticalExplode(item);
+    }
+    if (currentPieces[item].includes("bomb")) {
+      bombExplode(item);
+    }
+    if (currentPieces[item].includes("lightning")) {
+      lightningExplode(12);
+    }
+    // });
   };
 
   const checkForRowsOfFive = (currentPieces) => {
@@ -243,12 +213,11 @@ const App = () => {
         i += 4;
       }
       const rowOfFive = [i, i + 1, i + 2, i + 3, i + 4];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
       if (currentType) {
         if (rowOfFive.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           rowOfFive.forEach((index) => {
             indices.add(index);
-            explodeSpecials(rowOfFive);
           });
 
           // if (!rowOfFive.every((item) => {currentPieces[item]}))
@@ -266,12 +235,11 @@ const App = () => {
         i += 3;
       }
       const rowOfFour = [i, i + 1, i + 2, i + 3];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
       if (currentType) {
         if (rowOfFour.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           rowOfFour.forEach((index) => {
             indices.add(index);
-            explodeSpecials(rowOfFour);
           });
           arrowsHorizontal.add(i);
           console.log(i + " row of four " + currentType);
@@ -287,13 +255,12 @@ const App = () => {
         i += 2;
       }
       const rowOfThree = [i, i + 1, i + 2];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
       if (currentType) {
         if (rowOfThree.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           rowOfThree.forEach((index) => {
             console.log(index);
             indices.add(index);
-            explodeSpecials(rowOfThree);
           });
           console.log(i + " row of three " + currentType);
           return true;
@@ -333,13 +300,12 @@ const App = () => {
     for (let i = 0; i < boardSize * (boardSize - 4); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
 
       if (currentType) {
         if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           column.forEach((index) => {
             indices.add(index);
-            explodeSpecials(column);
           });
           lightnings.add(i);
           console.log(i + " column of five " + currentType);
@@ -353,13 +319,12 @@ const App = () => {
     for (let i = 0; i < boardSize * (boardSize - 3); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
 
       if (currentType) {
         if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           column.forEach((index) => {
             indices.add(index);
-            explodeSpecials(column);
           });
           arrowsVertical.add(i);
           console.log(i + " column of four " + currentType);
@@ -373,13 +338,12 @@ const App = () => {
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
 
       if (currentType) {
         if (column.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           column.forEach((index) => {
             indices.add(index);
-            explodeSpecials(column);
           });
           console.log(i + " column of three " + currentType);
           return true;
@@ -465,7 +429,13 @@ const App = () => {
     console.log(shuffled.slice(0, num));
   };
 
+  // addTwoNumbers(1, 2);
+  // subtractTwoNumbers(5, 2);
+
   const removeAllIndices = () => {
+    indices.forEach((item) => {
+      explodeSpecials(item);
+    });
     let score = () => {
       if (!differentValueMode) {
         return indices.size;
@@ -602,7 +572,8 @@ const App = () => {
       (draggedPiece == targetPiece - 1 && draggedPiece % boardSize != boardSize - 1) ||
       (draggedPiece - 1 == targetPiece && draggedPiece % boardSize != 0) ||
       draggedPiece - boardSize == targetPiece ||
-      draggedPiece == targetPiece - boardSize
+      draggedPiece == targetPiece - boardSize ||
+      adminMode
     ) {
       let piecesToCheck = [...currentPieces];
       let temp = currentPieces[draggedPiece];
@@ -617,7 +588,8 @@ const App = () => {
         checkForRowsOfFive(piecesToCheck) ||
         checkForRowsOfFour(piecesToCheck) ||
         checkForRowsOfThree(piecesToCheck) ||
-        freeMode
+        freeMode ||
+        adminMode
       )
         swapPieces(draggedPiece, targetPiece);
     }
@@ -630,7 +602,20 @@ const App = () => {
   useEffect(() => {
     populateBoard();
     // console.log(currentPieces);
-  }, [boardSize, colorGamemode, constraintGamemode, replay, differentValueMode]);
+  }, [boardSize, freeMode, colorGamemode, constraintGamemode, replay, differentValueMode]);
+
+  // const board = useRef();
+
+  // useEffect(() => {
+  //   const action = (event) => {
+  //     adminMode && console.log(event.target);
+  //   };
+
+  //   // board.current.addEventListener("click", action);
+  //   board.current.onClick = (event) => console.log(event.target);
+
+  //   // return board.current.removeEventListener("click", action);
+  // }, []);
 
   useEffect(() => {
     // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
@@ -689,8 +674,8 @@ const App = () => {
       // setInterval(() => {
       //   moveIntoSquareBelow();
       // }, 2000);
-      moveIntoSquareBelow();
-      // recursivelyDropColumn();
+      // moveIntoSquareBelow();
+      recursivelyDropColumn();
       // console.log("ended");
     }, 250);
     return () => {
@@ -766,24 +751,26 @@ const App = () => {
         </div>
         <button
           onClick={() => {
-            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+            if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
               setMovesMade(0);
               setCount(0);
               // setReplay(!replay);
               setGameOver(false);
+              !modeHasChanged && setModeHasChanged(true);
             }
           }}>
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
         </button>
         <button
           onClick={() => {
-            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+            if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setFreeMode(!freeMode);
               setMovesMade(0);
               setCount(0);
               // setReplay(!replay);
               setGameOver(false);
+              !modeHasChanged && setModeHasChanged(true);
             }
           }}>
           {!freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}
@@ -792,12 +779,13 @@ const App = () => {
         {constraintGamemode === "regular" ? (
           <button
             onClick={() => {
-              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("moves");
                 setMovesMade(0);
                 setCount(0);
                 // setReplay(!replay);
                 setGameOver(false);
+                !modeHasChanged && setModeHasChanged(true);
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
@@ -807,12 +795,13 @@ const App = () => {
         {constraintGamemode === "regular" ? (
           <button
             onClick={() => {
-              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("time");
                 setMovesMade(0);
                 setCount(0);
                 // setReplay(!replay);
                 setGameOver(false);
+                !modeHasChanged && setModeHasChanged(true);
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
@@ -822,7 +811,7 @@ const App = () => {
         {constraintGamemode === "regular" ? (
           <button
             onClick={() => {
-              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("multiplayer");
                 setMovesMade(0);
                 setCount(0);
@@ -832,6 +821,7 @@ const App = () => {
                 setMovesLeft(3);
                 // setReplay(!replay);
                 setGameOver(false);
+                !modeHasChanged && setModeHasChanged(true);
               }
             }}>
             {constraintGamemode === "regular" ? "Два игрока" : "Ограничения: обычный режим"}
@@ -840,12 +830,13 @@ const App = () => {
         {constraintGamemode !== "regular" ? (
           <button
             onClick={() => {
-              if (window.confirm("Сменить режим? Счет будет обнулен")) {
+              if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("regular");
                 setMovesMade(0);
                 setCount(0);
                 // setReplay(!replay);
                 setGameOver(false);
+                !modeHasChanged && setModeHasChanged(true);
               }
             }}>
             Обычный режим
@@ -854,7 +845,7 @@ const App = () => {
 
         <button
           onClick={() => {
-            if (window.confirm("Сменить режим? Счет будет обнулен")) {
+            if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setDifferentValueMode(!differentValueMode);
               setMovesMade(0);
               setCount(0);
@@ -865,9 +856,24 @@ const App = () => {
               constraintGamemode === "moves" && setMovesLeft(20);
               // setReplay(!replay);
               setGameOver(false);
+              !modeHasChanged && setModeHasChanged(true);
             }
           }}>
           {!differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
+        </button>
+        <button
+          onClick={() => {
+            if (adminMode || window.prompt("Ага, думаешь, так просто? Введи пароль") === "test") {
+              //да, я знаю, что его здесь видно, но много ли кто сюда полезет, кроме тебя?
+              setAdminMode(!adminMode);
+              setMovesMade(0);
+              setCount(0);
+              // setReplay(!replay);
+              setGameOver(false);
+              // !modeHasChanged && setModeHasChanged(true);
+            }
+          }}>
+          {!adminMode ? "Режим администратора" : "Обычный режим"}
         </button>
       </div>
       <div className='stats'>
@@ -878,6 +884,7 @@ const App = () => {
             console.log(currentPieces[32].split(" ")[0]);
           }}>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
+          {adminMode && ", админ"}
           {freeMode && ", свободные ходы"}
           {constraintGamemode === "moves"
             ? ", ограниченные ходы"
@@ -983,6 +990,11 @@ const App = () => {
 
       <div
         className='board'
+        // ref={board}
+        onClick={(event) => {
+          // adminMode && explodeSpecials([event.target.attributes["data-key"].value]);
+          adminMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
+        }}
         style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
         {currentPieces.map((e, i) => (
           <span
@@ -1008,16 +1020,36 @@ const App = () => {
         ))}
         {/* <PopulateBoard /> */}
       </div>
-      {differentValueMode && (
-        <div className='valueRules'>
-          {classes.map((item, index) => (
-            <div className='rule' key={index}>
-              <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
-              <span style={{ color: "white" }}>= {index + 1}</span>
-            </div>
-          ))}
+      <div className='rules'>
+        <div className='moveRules'>
+          <div className='rule'>
+            <div className='arrowRule' style={{ marginRight: 10 }}></div>
+            <span style={{ color: "white" }}>=</span>
+            <span className='piece arrowHorizontal rule' style={{ width: 40, height: 40 }}></span>
+          </div>
+          <div className='rule'>
+            <div className='bombRule' style={{ marginRight: 10 }}></div>
+            <span style={{ color: "white" }}>=</span>
+            <span className='piece bomb rule' style={{ width: 40, height: 40 }}></span>
+          </div>
+          <div className='rule'>
+            <div className='lightningRule' style={{ marginRight: 10 }}></div>
+            <span style={{ color: "white" }}>=</span>
+            <span className='piece lightning rule' style={{ width: 40, height: 40 }}></span>
+          </div>
         </div>
-      )}
+
+        {differentValueMode && (
+          <div className='valueRules'>
+            {classes.map((item, index) => (
+              <div className='rule' key={index}>
+                <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 0 }}></span>
+                <span style={{ color: "white", position: "relative", left: -31, color: "#29323c" }}>= {index + 1}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       <style jsx>{`
         .App {
@@ -1025,15 +1057,47 @@ const App = () => {
           width: 100vw;
           height: 100vh;
         }
-        .valueRules {
+        .rules {
           position: absolute;
           bottom: 50px;
-          left: 420px;
+          left: 350px;
           margin-top: 100px;
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+        }
+        .arrowRule {
+          background-image: url("/arrow.png");
+          background-size: 37px 8px;
+          width: 37px;
+          height: 8px;
+        }
+        .bombRule {
+          background-image: url("/bombs.png");
+          background-size: 105px 27px;
+          width: 105px;
+          height: 27px;
+        }
+        .lightningRule {
+          background-image: url("/lightning.png");
+          background-size: 47px 8px;
+          width: 47px;
+          height: 8px;
+        }
+        .moveRules {
+          display: flex;
+          flex-direction: column;
+          margin-right: 10px;
+        }
+
+        .piece.rule {
+          filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
+        }
+        .valueRules {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          column-gap: 10px;
-          row-gap: 10px;
+          column-gap: 5px;
+          row-gap: 5px;
         }
         .rule {
           display: flex;
@@ -1070,6 +1134,14 @@ const App = () => {
           flex-direction: column;
           align-items: center;
           z-index: 100;
+        }
+
+        .controlPanel button:not(.boardSizeBtn) {
+          padding: 5px 0;
+          background-color: white;
+          border-radius: 10px;
+          margin-bottom: 5px;
+          width: 100%;
         }
 
         .board {
@@ -1236,6 +1308,7 @@ const App = () => {
           display: flex;
           flex-direction: row;
           align-items: center;
+          margin: 20px 0;
         }
 
         .boardSizeBtn {
