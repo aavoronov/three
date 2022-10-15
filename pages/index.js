@@ -545,16 +545,16 @@ const App = () => {
     !movesMade && setTimeElapsed(0);
     !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
     !movesMade && constraintGamemode === "time" && setTimeLeft(180);
-    constraintGamemode === "moves" && setMovesLeft(movesLeft - 1);
+    constraintGamemode === "moves" || (constraintGamemode === "multiplayer" && setMovesLeft(movesLeft - 1));
 
-    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
-    //   setTurn(2);
-    //   setMovesLeft(3);
-    // }
-    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2) {
-    //   setTurn(1);
-    //   setMovesLeft(3);
-    // }
+    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
+      setTurn(2);
+      setMovesLeft(3);
+    }
+    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2) {
+      setTurn(1);
+      setMovesLeft(3);
+    }
   };
 
   const dragStart = (event) => {
@@ -768,6 +768,10 @@ const App = () => {
               setFreeMode(!freeMode);
               setMovesMade(0);
               setCount(0);
+              setCount2(0);
+              setRoundNumber(1);
+              setTurn(1);
+              setMovesLeft(3);
               // setReplay(!replay);
               setGameOver(false);
               !modeHasChanged && setModeHasChanged(true);
@@ -875,6 +879,7 @@ const App = () => {
           }}>
           {!adminMode ? "Режим администратора" : "Обычный режим"}
         </button>
+        {0 && <span>Ага, думаешь, так просто? Введи пароль . Попался! Ищешь пароль? Страждущий да обрящет</span>}
       </div>
       <div className='stats'>
         <span
