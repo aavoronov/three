@@ -1043,8 +1043,8 @@ const App = () => {
           <div className='valueRules'>
             {classes.map((item, index) => (
               <div className='rule' key={index}>
-                <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 0 }}></span>
-                <span style={{ color: "white", position: "relative", left: -31, color: "#29323c" }}>= {index + 1}</span>
+                <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
+                <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
               </div>
             ))}
           </div>
@@ -1103,6 +1103,7 @@ const App = () => {
           display: flex;
           flex-direction: row;
           align-items: center;
+          position: relative;
         }
         .openMenuBtn {
           width: 40px;
@@ -1365,8 +1366,9 @@ const App = () => {
             overflow: hidden;
             height: 90vh;
           }
-          .valueRules {
-            left: 100px;
+
+          .rules {
+            left: 10px;
             bottom: 75px;
           }
           .stats {
