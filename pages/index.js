@@ -130,7 +130,7 @@ const App = () => {
   const [validatingMove, setValidatingMove] = useState(false);
 
   const classesInRandomOrder = () => {
-    differentValueMode ? classes.sort(() => Math.random() - 0.5) : classes.sort(() => Math.random() - 0.5);
+    colorGamemode === "fiveColors" ? classesFiveColors.sort(() => Math.random() - 0.5) : classes.sort(() => Math.random() - 0.5);
   };
 
   const getRandomPiece = () => {
