@@ -4,6 +4,7 @@
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
 //TODO абилки
+//TODO ход из двух спецфишек
 // // obsolete переписать проверку матчей под совпадение двух подряд фишек
 //fixed первая ячейка не падает
 //fixed спецфишки не отрабатывают в первом столбце
@@ -35,75 +36,66 @@ import Head from "next/head";
 import Script from "next/script";
 // import Draggable from "react-draggable";
 
-// const boardSize = 8;
-// const classes = () =>
-//   gamemode === "fiveColors"
-//     ? ["square", "diamond", "circle", "triangle", "pentagon", "star"]
-//     : ["square", "diamond", "circle", "triangle", "pentagon"];
+// const ArrowHorizontal = (props) => (
+//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
+//     <path
+//       d='M93.036 47.1c2.052 1.389 2.052 4.411 0 5.799L71.96 67.153c-2.325 1.572-5.461-.094-5.461-2.9V35.746c0-2.806 3.136-4.47 5.46-2.899l21.076 14.254ZM6.964 52.899c-2.052-1.388-2.052-4.41 0-5.799L28.04 32.847c2.324-1.572 5.461.093 5.461 2.9v28.506c0 2.806-3.137 4.471-5.46 2.9L6.963 52.898Z'
+//       fill='red'
+//       stroke='#000'
+//       strokeWidth={3}
+//     />
+//     <path fill='red' d='M23.334 43.333h53.333v13.333H23.334z' />
+//     <path stroke='#000' strokeWidth={3} d='M32 44.5h36M32 55.5h36' />
+//   </svg>
+// );
 
-const ArrowHorizontal = (props) => (
-  <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-    <path
-      d='M93.036 47.1c2.052 1.389 2.052 4.411 0 5.799L71.96 67.153c-2.325 1.572-5.461-.094-5.461-2.9V35.746c0-2.806 3.136-4.47 5.46-2.899l21.076 14.254ZM6.964 52.899c-2.052-1.388-2.052-4.41 0-5.799L28.04 32.847c2.324-1.572 5.461.093 5.461 2.9v28.506c0 2.806-3.137 4.471-5.46 2.9L6.963 52.898Z'
-      fill='red'
-      stroke='#000'
-      strokeWidth={3}
-    />
-    <path fill='red' d='M23.334 43.333h53.333v13.333H23.334z' />
-    <path stroke='#000' strokeWidth={3} d='M32 44.5h36M32 55.5h36' />
-  </svg>
-);
+// const ArrowVertical = (props) => (
+//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
+//     <path
+//       d='M47.1 6.964c1.389-2.052 4.411-2.052 5.799 0L67.153 28.04c1.572 2.324-.094 5.461-2.9 5.461H35.746c-2.806 0-4.47-3.137-2.899-5.46L47.101 6.963ZM52.899 93.036c-1.388 2.052-4.41 2.052-5.799 0L32.847 71.96c-1.572-2.325.093-5.461 2.9-5.461h28.506c2.806 0 4.471 3.136 2.9 5.46L52.898 93.037Z'
+//       fill='red'
+//       stroke='#000'
+//       strokeWidth={3}
+//     />
+//     <path fill='red' d='M43.332 76.666V23.333h13.333v53.333z' />
+//     <path stroke='#000' strokeWidth={3} d='M44.5 68V32M55.5 68V32' />
+//   </svg>
+// );
 
-const ArrowVertical = (props) => (
-  <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-    <path
-      d='M47.1 6.964c1.389-2.052 4.411-2.052 5.799 0L67.153 28.04c1.572 2.324-.094 5.461-2.9 5.461H35.746c-2.806 0-4.47-3.137-2.899-5.46L47.101 6.963ZM52.899 93.036c-1.388 2.052-4.41 2.052-5.799 0L32.847 71.96c-1.572-2.325.093-5.461 2.9-5.461h28.506c2.806 0 4.471 3.136 2.9 5.46L52.898 93.037Z'
-      fill='red'
-      stroke='#000'
-      strokeWidth={3}
-    />
-    <path fill='red' d='M43.332 76.666V23.333h13.333v53.333z' />
-    <path stroke='#000' strokeWidth={3} d='M44.5 68V32M55.5 68V32' />
-  </svg>
-);
+// const Bomb = (props) => (
+//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
+//     <circle cx={46.578} cy={58.626} r={28.245} transform='rotate(20 46.578 58.626)' fill='red' stroke='#000' strokeWidth={3} />
+//     <path fill='red' d='m51.467 24.319 13.156 4.788-3.079 8.458-13.155-4.789z' />
+//     <path
+//       d='m55.251 33.926 1.73-4.752c3.662-10.062 6.535-11.866 13.828-13.643 7.294-1.776 10.622 3.866 10.622 3.866s2.87 5.16 1.599 6.914'
+//       stroke='red'
+//       strokeWidth={3}
+//     />
+//     <path
+//       d='M86.055 24.131c.218-.36 1.035-.62 1.404-.84.534-.316 1.383-.545 1.745-1.045.363-.5 1.64-.263 1.886-.937M86.583 27.297c1.398.294 2.958.172 4.287.655.356.13 1.506.744 1.754.51M84.03 29.34c.102.307.02.608.149.932.11.275.216.716.235 1.012.031.494.106 1.084.254 1.55.15.476.184 1.283.159 1.775-.02.4.174.801.217 1.178M80.926 28.987c-.155.264-.493.434-.739.608-.23.163-.37.456-.6.586-.487.273-.865.702-1.273 1.088-.144.136-.498.28-.576.437-.08.16-.07.243-.222.335-.243.148-.183.552-.567.412M80.054 25.696c-2.095-.763-3.975-2.093-6.071-2.856'
+//       stroke='red'
+//       strokeWidth={2}
+//       strokeLinecap='round'
+//     />
+//   </svg>
+// );
 
-const Bomb = (props) => (
-  <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-    <circle cx={46.578} cy={58.626} r={28.245} transform='rotate(20 46.578 58.626)' fill='red' stroke='#000' strokeWidth={3} />
-    <path fill='red' d='m51.467 24.319 13.156 4.788-3.079 8.458-13.155-4.789z' />
-    <path
-      d='m55.251 33.926 1.73-4.752c3.662-10.062 6.535-11.866 13.828-13.643 7.294-1.776 10.622 3.866 10.622 3.866s2.87 5.16 1.599 6.914'
-      stroke='red'
-      strokeWidth={3}
-    />
-    <path
-      d='M86.055 24.131c.218-.36 1.035-.62 1.404-.84.534-.316 1.383-.545 1.745-1.045.363-.5 1.64-.263 1.886-.937M86.583 27.297c1.398.294 2.958.172 4.287.655.356.13 1.506.744 1.754.51M84.03 29.34c.102.307.02.608.149.932.11.275.216.716.235 1.012.031.494.106 1.084.254 1.55.15.476.184 1.283.159 1.775-.02.4.174.801.217 1.178M80.926 28.987c-.155.264-.493.434-.739.608-.23.163-.37.456-.6.586-.487.273-.865.702-1.273 1.088-.144.136-.498.28-.576.437-.08.16-.07.243-.222.335-.243.148-.183.552-.567.412M80.054 25.696c-2.095-.763-3.975-2.093-6.071-2.856'
-      stroke='red'
-      strokeWidth={2}
-      strokeLinecap='round'
-    />
-  </svg>
-);
+// const Lightning = (props) => (
+//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
+//     <path
+//       d='M35.797 53.373 67.395 6.79c.663-.978 2.174-.2 1.766.907L55.728 44.106a1 1 0 0 0 .938 1.346h13.242a1 1 0 0 1 .778 1.628l-36.76 45.573c-.754.933-2.212-.008-1.671-1.08l17.772-35.188a1 1 0 0 0-.893-1.45h-12.51a1 1 0 0 1-.828-1.562Z'
+//       fill='red'
+//       stroke='#000'
+//       strokeWidth={3}
+//     />
+//     <path
+//       d='m31.664 35.764 2.824-1.502-.555-3.15 2.301 2.222 2.825-1.502-1.403 2.876 2.301 2.222-3.168-.445-1.402 2.875-.555-3.15-3.168-.446ZM72.956 64.543l-1.936-2.478-2.955 1.075 1.758-2.607-1.936-2.477 3.023.866 1.758-2.607.11 3.143 3.023.867-2.955 1.075.11 3.143Z'
+//       fill='red'
+//     />
+//   </svg>
+// );
 
-const Lightning = (props) => (
-  <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-    <path
-      d='M35.797 53.373 67.395 6.79c.663-.978 2.174-.2 1.766.907L55.728 44.106a1 1 0 0 0 .938 1.346h13.242a1 1 0 0 1 .778 1.628l-36.76 45.573c-.754.933-2.212-.008-1.671-1.08l17.772-35.188a1 1 0 0 0-.893-1.45h-12.51a1 1 0 0 1-.828-1.562Z'
-      fill='red'
-      stroke='#000'
-      strokeWidth={3}
-    />
-    <path
-      d='m31.664 35.764 2.824-1.502-.555-3.15 2.301 2.222 2.825-1.502-1.403 2.876 2.301 2.222-3.168-.445-1.402 2.875-.555-3.15-3.168-.446ZM72.956 64.543l-1.936-2.478-2.955 1.075 1.758-2.607-1.936-2.477 3.023.866 1.758-2.607.11 3.143 3.023.867-2.955 1.075.11 3.143Z'
-      fill='red'
-    />
-  </svg>
-);
-
-let classes = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
-const classesFiveColors = ["square", "diamond", "circle", "triangle", "pentagon"];
-
-// console.log(classesInRandomOrder());
+const classesRegular = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
 
 const App = () => {
   const [currentPieces, setCurrentPieces] = useState([]);
@@ -127,16 +119,50 @@ const App = () => {
   const [menuIsOpen, setMenuIsOpen] = useState(false);
   const [freeMode, setFreeMode] = useState(false);
   const [differentValueMode, setDifferentValueMode] = useState(false);
-  const [validatingMove, setValidatingMove] = useState(false);
+  const [extraMoveAwarded, setExtraMoveAwarded] = useState(false);
+  const [perksUsedBlue, setPerksUsedBlue] = useState([]);
+  const [perksUsedRed, setPerksUsedRed] = useState([]);
+
+  // const [validatingMove, setValidatingMove] = useState(false);
+
+  const classes = colorGamemode === "regular" ? classesRegular : classesRegular.slice(0, 5);
+
+  const perkAction = (type) => {
+    if (type === "shuffle") {
+      currentPieces.sort(() => Math.random() - 0.5);
+      setCurrentPieces([...currentPieces]);
+      if (turn === 1) {
+        // perksUsedBlue.push("shuffle");
+        setPerksUsedBlue(["shuffle", ...perksUsedBlue]);
+      } else {
+        // perksUsedRed.push("shuffle");
+        setPerksUsedRed(["shuffle", ...perksUsedRed]);
+      }
+    } else if (type === "bomb") {
+      bombExplode(boardSize % 2 === 0 ? (boardSize * boardSize + boardSize) / 2 : (boardSize * boardSize - 1) / 2);
+      // console.log(boardSize % 2 === 0 ? (boardSize * boardSize + boardSize) / 2 : (boardSize * boardSize - 1) / 2);
+      if (turn === 1) {
+        //   // perksUsedBlue.push("bomb");
+        setTimeout(() => {
+          setPerksUsedBlue(["bomb", ...perksUsedBlue]);
+        }, 300);
+      } else {
+        setTimeout(() => {
+          setPerksUsedRed(["bomb", ...perksUsedRed]);
+        }, 300);
+        //   // perksUsedRed.push("bomb");
+        //   setPerksUsedRed(["bomb", ...perksUsedRed]);
+        // }
+      }
+    }
+  };
 
   const classesInRandomOrder = () => {
-    colorGamemode === "fiveColors" ? classesFiveColors.sort(() => Math.random() - 0.5) : classes.sort(() => Math.random() - 0.5);
+    classes.sort(() => Math.random() - 0.5);
   };
 
   const getRandomPiece = () => {
-    return colorGamemode === "fiveColors"
-      ? classesFiveColors[Math.floor(Math.random() * classesFiveColors.length)]
-      : classes[Math.floor(Math.random() * classes.length)];
+    return classes[Math.floor(Math.random() * classes.length)];
   };
 
   const populateBoard = () => {
@@ -171,13 +197,13 @@ const App = () => {
         if (upperLeft.every((piece) => currentPieces[piece] === currentType)) {
           console.log("upper left");
           bombs.add(i);
-          // return true;
+          return true;
         }
         if (lowerLeft.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower left");
           bombs.add(i + 2 * boardSize);
 
-          // return true;
+          return true;
         }
       }
     }
@@ -194,13 +220,13 @@ const App = () => {
           console.log("upper right");
           bombs.add(i + 2);
 
-          // return true;
+          return true;
         }
         if (lowerRight.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower right");
           bombs.add(i + 2);
 
-          // return true;
+          return true;
         }
       }
     }
@@ -221,28 +247,28 @@ const App = () => {
         if (upper.every((piece) => currentPieces[piece] === currentType)) {
           console.log("upper");
           bombs.add(i + 1);
-          // return true;
+          return true;
         }
         if (left.every((piece) => currentPieces[piece] === currentType)) {
           console.log("left");
           bombs.add(i + boardSize);
-          // return true;
+          return true;
         }
         if (lower.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower");
           bombs.add(i + 1);
-          // return true;
+          return true;
         }
         if (right.every((piece) => currentPieces[piece] === currentType)) {
           console.log("right");
           bombs.add(i + 2);
-          // return true;
+          return true;
         }
         if (plus.every((piece) => currentPieces[piece] === currentType)) {
           console.log("plus");
           bombs.add(i + 1);
 
-          // return true;
+          return true;
         }
       }
     }
@@ -501,9 +527,7 @@ const App = () => {
       } else {
         let raw = 0;
         indices.forEach((item) => {
-          differentValueMode
-            ? (raw += classesFiveColors.indexOf(currentPieces[item].split(" ")[0]) + 1)
-            : (raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1);
+          raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1;
         });
         // console.log(raw);
         return raw;
@@ -606,7 +630,7 @@ const App = () => {
     !movesMade && setTimeElapsed(0);
     !movesMade && constraintGamemode === "moves" && setMovesLeft(20);
     !movesMade && constraintGamemode === "time" && setTimeLeft(180);
-    constraintGamemode === "moves" || (constraintGamemode === "multiplayer" && setMovesLeft(movesLeft - 1));
+    (constraintGamemode === "moves" || constraintGamemode === "multiplayer") && setMovesLeft(movesLeft - 1);
 
     if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
       setTurn(2);
@@ -627,7 +651,7 @@ const App = () => {
   const dragDrop = (event) => {
     // console.log(event);
     // console.log(event.currentTarget);
-    setValidatingMove(true);
+    // setValidatingMove(true);
     const targetPiece = event.target.attributes["data-key"].nodeValue;
     if (
       (draggedPiece == targetPiece - 1 && draggedPiece % boardSize != boardSize - 1) ||
@@ -654,10 +678,30 @@ const App = () => {
       )
         swapPieces(draggedPiece, targetPiece);
     }
-    setValidatingMove(false);
+    // setValidatingMove(false);
   };
   const dragEnd = () => {
     setDraggedPiece(null);
+  };
+
+  const resetEverything = () => {
+    setMovesMade(0);
+    setCount(0);
+    setCount2(0);
+    setRoundNumber(1);
+    setTurn(1);
+    // if (constraintGamemode === "moves") ;
+    //  if (constraintGamemode === "time") setTimeLeft(60);
+    // // constraintGamemode === "multiplayer" && setMovesLeft(3);
+    // constraintGamemode === "moves" && setMovesLeft(20);
+    // constraintGamemode === "time" && setTimeLeft(60);
+
+    // setReplay(!replay);
+    setGameOver(false);
+    setPerksUsedBlue([]);
+    setPerksUsedRed([]);
+    !modeHasChanged && setModeHasChanged(true);
+    !sizeHasChanged && setSizeHasChanged(true);
   };
 
   useEffect(() => {
@@ -666,38 +710,6 @@ const App = () => {
     populateBoard();
     // console.log(currentPieces);
   }, [boardSize, freeMode, colorGamemode, constraintGamemode, replay, differentValueMode]);
-
-  // const board = useRef();
-
-  // useEffect(() => {
-  //   const action = (event) => {
-  //     adminMode && console.log(event.target);
-  //   };
-
-  //   // board.current.addEventListener("click", action);
-  //   board.current.onClick = (event) => console.log(event.target);
-
-  //   // return board.current.removeEventListener("click", action);
-  // }, []);
-
-  useEffect(() => {
-    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 1) {
-    //   setTimeout(() => {
-    //     setTurn(2);
-    //     setMovesLeft(3);
-    //   }, 3000);
-    // }
-    // if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber < 5) {
-    //   setTimeout(() => {
-    //     setTurn(1);
-    //     setMovesLeft(3);
-    //     setRoundNumber(roundNumber + 1);
-    //   }, 3000);
-    // }
-    if (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber === 5) {
-      setGameOver(true);
-    }
-  }, [movesLeft, turn]);
 
   useEffect(() => {
     const timeIncrement = setInterval(() => {
@@ -712,21 +724,35 @@ const App = () => {
   }, [timeElapsed]);
 
   useEffect(() => {
-    if ((constraintGamemode === "time" && timeLeft === 0) || (constraintGamemode === "moves" && movesLeft === 0)) {
+    if (
+      (constraintGamemode === "time" && timeLeft === 0) ||
+      (constraintGamemode === "moves" && movesLeft === 0) ||
+      (constraintGamemode === "multiplayer" && movesLeft === 0 && turn === 2 && roundNumber === 5)
+    ) {
       setGameOver(true);
     }
-  }, [timeLeft, movesLeft]);
+  }, [timeLeft, movesLeft, turn]);
 
   useEffect(() => {
     const timer = setInterval(() => {
+      checkForRowsOfFive(currentPieces);
+      checkForColumnsOfFive(currentPieces);
       checkForCorners(currentPieces);
       checkForTsAndPluses(currentPieces);
-      checkForRowsOfFive(currentPieces);
       checkForRowsOfFour(currentPieces);
-      checkForRowsOfThree(currentPieces);
-      checkForColumnsOfFive(currentPieces);
       checkForColumnsOfFour(currentPieces);
+      checkForRowsOfThree(currentPieces);
       checkForColumnsOfThree(currentPieces);
+
+      // if (!checkForRowsOfFive(currentPieces) && !checkForColumnsOfFive(currentPieces)) {
+      //   if (!checkForCorners(currentPieces) && !checkForTsAndPluses(currentPieces)) {
+      //     checkForRowsOfFour(currentPieces);
+      //     checkForColumnsOfFour(currentPieces);
+      //   }
+      // }
+
+      // checkForRowsOfThree(currentPieces);
+      // checkForColumnsOfThree(currentPieces);
 
       // checkForHorizontalMatches(currentPieces);
       // checkForVerticalMatches(currentPieces);
@@ -778,15 +804,20 @@ const App = () => {
               if (sizeHasChanged) {
                 if (boardSize != 5) {
                   setBoardSize(boardSize - 1);
-                  setMovesMade(0);
-                  setCount(0);
+                  // setMovesMade(0);
+                  // setCount(0);
+                  // setPerksUsedBlue([]);
+                  // setPerksUsedRed([]);
+                  resetEverything();
                 }
               } else {
                 if (window.confirm("Изменить размер доски? Счет будет обнулен") && boardSize != 5) {
                   setBoardSize(boardSize - 1);
-                  setSizeHasChanged(true);
-                  setMovesMade(0);
-                  setCount(0);
+                  // setMovesMade(0);
+                  // setCount(0);
+                  // setPerksUsedBlue([]);
+                  // setPerksUsedRed([]);
+                  resetEverything();
                 }
               }
             }}>
@@ -798,14 +829,16 @@ const App = () => {
             onClick={() => {
               if (sizeHasChanged) {
                 setBoardSize(boardSize + 1);
-                setMovesMade(0);
-                setCount(0);
+                // setMovesMade(0);
+                // setCount(0);
+                resetEverything();
               } else {
                 if (window.confirm("Изменить размер доски? Счет будет обнулен")) {
                   setBoardSize(boardSize + 1);
-                  setSizeHasChanged(true);
-                  setMovesMade(0);
-                  setCount(0);
+                  // setSizeHasChanged(true);
+                  // setMovesMade(0);
+                  // setCount(0);
+                  resetEverything();
                 }
               }
             }}>
@@ -816,11 +849,13 @@ const App = () => {
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
-              setMovesMade(0);
-              setCount(0);
-              // setReplay(!replay);
-              setGameOver(false);
-              !modeHasChanged && setModeHasChanged(true);
+              // setMovesMade(0);
+              // setCount(0);
+              // // setReplay(!replay);
+              // setGameOver(false);
+              resetEverything();
+
+              // !modeHasChanged && setModeHasChanged(true);
             }
           }}>
           {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
@@ -829,15 +864,17 @@ const App = () => {
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setFreeMode(!freeMode);
-              setMovesMade(0);
-              setCount(0);
-              setCount2(0);
-              setRoundNumber(1);
-              setTurn(1);
-              setMovesLeft(3);
-              // setReplay(!replay);
-              setGameOver(false);
-              !modeHasChanged && setModeHasChanged(true);
+              // setMovesMade(0);
+              // setCount(0);
+              // setCount2(0);
+              // setRoundNumber(1);
+              // setTurn(1);
+              // setMovesLeft(3);
+              // // setReplay(!replay);
+              // setGameOver(false);
+              resetEverything();
+
+              // !modeHasChanged && setModeHasChanged(true);
             }
           }}>
           {!freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}
@@ -848,11 +885,13 @@ const App = () => {
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("moves");
-                setMovesMade(0);
-                setCount(0);
-                // setReplay(!replay);
-                setGameOver(false);
-                !modeHasChanged && setModeHasChanged(true);
+                // setMovesMade(0);
+                // setCount(0);
+                // // setReplay(!replay);
+                // setGameOver(false);
+                // !modeHasChanged && setModeHasChanged(true);
+                setMovesLeft(20);
+                resetEverything();
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
@@ -864,11 +903,13 @@ const App = () => {
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("time");
-                setMovesMade(0);
-                setCount(0);
-                // setReplay(!replay);
-                setGameOver(false);
-                !modeHasChanged && setModeHasChanged(true);
+                // setMovesMade(0);
+                // setCount(0);
+                // // setReplay(!replay);
+                // setGameOver(false);
+                // !modeHasChanged && setModeHasChanged(true);
+                setTimeLeft(60);
+                resetEverything();
               }
             }}>
             {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
@@ -880,15 +921,18 @@ const App = () => {
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("multiplayer");
-                setMovesMade(0);
-                setCount(0);
-                setCount2(0);
-                setRoundNumber(1);
-                setTurn(1);
+                // setMovesMade(0);
+                // setCount(0);
+                // setCount2(0);
+                // setRoundNumber(1);
+                // setTurn(1);
+                // setMovesLeft(3);
+                // // setReplay(!replay);
+                // setGameOver(false);
+                // !modeHasChanged && setModeHasChanged(true);
                 setMovesLeft(3);
-                // setReplay(!replay);
-                setGameOver(false);
-                !modeHasChanged && setModeHasChanged(true);
+
+                resetEverything();
               }
             }}>
             {constraintGamemode === "regular" ? "Два игрока" : "Ограничения: обычный режим"}
@@ -899,11 +943,14 @@ const App = () => {
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("regular");
-                setMovesMade(0);
-                setCount(0);
-                // setReplay(!replay);
-                setGameOver(false);
-                !modeHasChanged && setModeHasChanged(true);
+                // setMovesMade(0);
+                // setCount(0);
+                // // setReplay(!replay);
+                // setGameOver(false);
+                // !modeHasChanged && setModeHasChanged(true);
+                setMovesLeft(3);
+
+                resetEverything();
               }
             }}>
             Обычный режим
@@ -914,16 +961,17 @@ const App = () => {
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setDifferentValueMode(!differentValueMode);
-              setMovesMade(0);
-              setCount(0);
-              setCount2(0);
-              setRoundNumber(1);
-              setTurn(1);
-              constraintGamemode === "multiplayer" && setMovesLeft(3);
-              constraintGamemode === "moves" && setMovesLeft(20);
-              // setReplay(!replay);
-              setGameOver(false);
-              !modeHasChanged && setModeHasChanged(true);
+              // setMovesMade(0);
+              // setCount(0);
+              // setCount2(0);
+              // setRoundNumber(1);
+              // setTurn(1);
+              // constraintGamemode === "multiplayer" && setMovesLeft(3);
+              // constraintGamemode === "moves" && setMovesLeft(20);
+              // // setReplay(!replay);
+              // setGameOver(false);
+              // !modeHasChanged && setModeHasChanged(true);
+              resetEverything();
             }
           }}>
           {!differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
@@ -933,8 +981,8 @@ const App = () => {
             if (adminMode || window.prompt("Ага, думаешь, так просто? Введи пароль") === "test") {
               //да, я знаю, что его здесь видно, но много ли кто сюда полезет, кроме тебя?
               setAdminMode(!adminMode);
-              setMovesMade(0);
-              setCount(0);
+              // setMovesMade(0);
+              // setCount(0);
               // setReplay(!replay);
               setGameOver(false);
               // !modeHasChanged && setModeHasChanged(true);
@@ -948,8 +996,7 @@ const App = () => {
         <span
           className='gamemode'
           onClick={() => {
-            // console.log(bombExplode(0));
-            console.log(currentPieces[32].split(" ")[0]);
+            console.log(perksUsedBlue, perksUsedRed);
           }}>
           Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
           {adminMode && ", админ"}
@@ -965,7 +1012,8 @@ const App = () => {
         </span>
         {constraintGamemode === "multiplayer" && (
           <span className='gamemode'>
-            Раунд {roundNumber}/5. Очередь: <span style={{ color: "green" }}>игрок {turn}</span>. Осталось ходов: {movesLeft}.
+            Раунд {roundNumber}/5. Очередь: <span style={turn === 1 ? { color: "#3498db" } : { color: "#e74c3c" }}>игрок {turn}</span>.
+            Осталось ходов: {movesLeft}.
           </span>
         )}
         {movesMade > 0 ? (
@@ -977,7 +1025,7 @@ const App = () => {
               </span>
             )}
             {constraintGamemode !== "time" ? (
-              <span>
+              <span style={{ fontSize: 18 }}>
                 Время: {timeElapsed >= 3600 && Math.floor(timeElapsed / 3600) + ":"}
                 {timeElapsed % 3600 < 600 && 0}
                 {Math.floor((timeElapsed % 3600) / 60)}:{timeElapsed % 60 < 10 && 0}
@@ -995,8 +1043,50 @@ const App = () => {
             {constraintGamemode === "multiplayer" ? (
               <div className='twoPlayerStatsWrap'>
                 <div className='twoPlayersStats'>
-                  <span style={turn === 1 ? { color: "green" } : { color: "white" }}>Игрок 1 - счет: {count}</span>
-                  <span style={turn === 2 ? { color: "green" } : { color: "white" }}>Игрок 2 - счет: {count2}</span>
+                  <div className='playerWrap'>
+                    <span style={turn === 1 ? { color: "#3498db" } : { color: "white" }}>Игрок 1 - счет: {count}</span>
+                    <div className='perks blue'>
+                      <span
+                        className={`perk blue shuffle${perksUsedBlue.includes("shuffle") || perksUsedBlue.length === 2 ? " used" : ""}${
+                          turn === 1 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedBlue.includes("shuffle") && perksUsedBlue.length < 2 && turn === 1 && movesLeft !== 0) ||
+                            adminMode) &&
+                            perkAction("shuffle");
+                        }}></span>
+                      <span
+                        className={`perk blue bomb${perksUsedBlue.includes("bomb") || perksUsedBlue.length === 2 ? " used" : ""}${
+                          turn === 1 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedBlue.includes("bomb") && perksUsedBlue.length < 2 && turn === 1 && movesLeft !== 0) || adminMode) &&
+                            perkAction("bomb");
+                          // setPerksUsedBlue(["bomb", ...perksUsedBlue]);
+                        }}></span>
+                    </div>
+                  </div>
+                  <div className='playerWrap'>
+                    <span style={turn === 2 ? { color: "#e74c3c" } : { color: "white" }}>Игрок 2 - счет: {count2}</span>
+                    <div className='perks red'>
+                      <span
+                        className={`perk red shuffle${perksUsedRed.includes("shuffle") || perksUsedRed.length === 2 ? " used" : ""}${
+                          turn === 2 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedRed.includes("shuffle") && perksUsedRed.length < 2 && turn === 2 && movesLeft !== 0) || adminMode) &&
+                            perkAction("shuffle");
+                        }}></span>
+                      <span
+                        className={`perk red bomb${perksUsedRed.includes("bomb") || perksUsedRed.length === 2 ? " used" : ""}${
+                          turn === 2 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedRed.includes("bomb") && perksUsedRed.length < 2 && turn === 2 && movesLeft !== 0) || adminMode) &&
+                            perkAction("bomb");
+                        }}></span>
+                    </div>
+                  </div>
                 </div>
                 {movesLeft === 0 && turn === 1 && (
                   <button
@@ -1066,8 +1156,8 @@ const App = () => {
         className='board'
         // ref={board}
         onClick={(event) => {
-          // adminMode && explodeSpecials([event.target.attributes["data-key"].value]);
-          adminMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
+          adminMode && explodeSpecials([event.target.attributes["data-key"].value]);
+          // adminMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
         }}
         style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
         {currentPieces.map((e, i) => (
@@ -1115,19 +1205,12 @@ const App = () => {
 
         {differentValueMode && (
           <div className='valueRules'>
-            {colorGamemode === "fiveColors"
-              ? classesFiveColors.map((item, index) => (
-                  <div className='rule' key={index}>
-                    <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
-                    <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
-                  </div>
-                ))
-              : classes.map((item, index) => (
-                  <div className='rule' key={index}>
-                    <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
-                    <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
-                  </div>
-                ))}
+            {classes.map((item, index) => (
+              <div className='rule' key={index}>
+                <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
+                <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -1170,9 +1253,13 @@ const App = () => {
           flex-direction: column;
           margin-right: 10px;
         }
+        .moveRules .rule {
+          justify-content: space-between;
+        }
 
         .piece.rule {
           filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
+          margin: 0;
         }
         .valueRules {
           display: grid;
@@ -1435,12 +1522,74 @@ const App = () => {
           flex-direction: column;
           align-items: center;
         }
+
+        .twoPlayerStatsWrap button {
+          padding: 5px 0;
+          background-color: white;
+          border-radius: 10px;
+          margin-bottom: 5px;
+          width: 50%;
+          color: #29323c;
+        }
         .twoPlayersStats {
-          width: 400px;
+          width: 320px;
           display: flex;
           flex-direction: row;
           justify-content: space-between;
           align-items: center;
+        }
+        .playerWrap * {
+          font-size: 18px;
+        }
+
+        .playerWrap {
+          display: flex;
+          flex-direction: column;
+        }
+        .perks {
+          display: flex;
+          flex-direction: row;
+        }
+        .perks.red {
+          justify-content: flex-end;
+        }
+        .perk {
+          width: 40px;
+          height: 40px;
+          margin-right: 3px;
+          border-radius: 10px;
+          border: 3px solid black;
+          cursor: pointer;
+          transition: all 0.3s;
+        }
+        .perk:hover {
+          filter: brightness(120%);
+          transition: all 0.3s;
+        }
+        .perk.blue {
+          background-color: #3498db;
+          border-color: #0b2637;
+        }
+        .perk.red {
+          background-color: #e74c3c;
+          border-color: #992013;
+        }
+        .perk.used {
+          opacity: 0.5;
+        }
+        .perk.disabled {
+          filter: grayscale(0.4);
+        }
+        .shuffle {
+          background-image: url("/shuffle.png");
+          background-position: 50%;
+          background-repeat: no-repeat;
+        }
+        .perk.bomb {
+          background-image: url("/bomb.png") !important;
+          background-position: 50%;
+          background-repeat: no-repeat;
+          background-size: 30px;
         }
 
         @media screen and (max-width: 768px) {
@@ -1462,6 +1611,7 @@ const App = () => {
           }
           .board {
             /* display: none; */
+            top: calc(50vh - 160px);
             left: 20px;
             max-width: 400px;
             max-height: 400px;
