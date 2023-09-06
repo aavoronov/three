@@ -1,15 +1,17 @@
-//TODO перемешать
 //TODO анимации
 //TODO автоопределение конца хода
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
-//TODO абилки
 //TODO ход из двух спецфишек
+//TODO бустеры
+//TODO больше абилок
 // // obsolete переписать проверку матчей под совпадение двух подряд фишек
+//? kinda done перемешать
 //fixed первая ячейка не падает
 //fixed спецфишки не отрабатывают в первом столбце
 //fixed фишки не успевают падать и схлопываются по 3 вместо 4
 //fixed бомбы образуются из плюса с предыдущих рядов
+//DONE абилки
 //DONE режим админа
 //DONE разделить логику ходов
 //DONE стрелки
@@ -34,81 +36,50 @@
 import React, { useState, useEffect, useRef } from "react";
 import Head from "next/head";
 import Script from "next/script";
+
 // import Draggable from "react-draggable";
 
-// const ArrowHorizontal = (props) => (
-//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-//     <path
-//       d='M93.036 47.1c2.052 1.389 2.052 4.411 0 5.799L71.96 67.153c-2.325 1.572-5.461-.094-5.461-2.9V35.746c0-2.806 3.136-4.47 5.46-2.899l21.076 14.254ZM6.964 52.899c-2.052-1.388-2.052-4.41 0-5.799L28.04 32.847c2.324-1.572 5.461.093 5.461 2.9v28.506c0 2.806-3.137 4.471-5.46 2.9L6.963 52.898Z'
-//       fill='red'
-//       stroke='#000'
-//       strokeWidth={3}
-//     />
-//     <path fill='red' d='M23.334 43.333h53.333v13.333H23.334z' />
-//     <path stroke='#000' strokeWidth={3} d='M32 44.5h36M32 55.5h36' />
-//   </svg>
-// );
+const _classesRegular = Object.freeze({
+  square: "square",
+  diamond: "diamond",
+  circle: "circle",
+  triangle: "triangle",
+  pentagon: "pentagon",
+  star: "star",
+});
+const _classesSpecial = Object.freeze({
+  arrowHorizontal: "arrowHorizontal",
+  arrowVertical: "arrowVertical",
+  bomb: "bomb",
+  lightning: "lightning",
+});
 
-// const ArrowVertical = (props) => (
-//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-//     <path
-//       d='M47.1 6.964c1.389-2.052 4.411-2.052 5.799 0L67.153 28.04c1.572 2.324-.094 5.461-2.9 5.461H35.746c-2.806 0-4.47-3.137-2.899-5.46L47.101 6.963ZM52.899 93.036c-1.388 2.052-4.41 2.052-5.799 0L32.847 71.96c-1.572-2.325.093-5.461 2.9-5.461h28.506c2.806 0 4.471 3.136 2.9 5.46L52.898 93.037Z'
-//       fill='red'
-//       stroke='#000'
-//       strokeWidth={3}
-//     />
-//     <path fill='red' d='M43.332 76.666V23.333h13.333v53.333z' />
-//     <path stroke='#000' strokeWidth={3} d='M44.5 68V32M55.5 68V32' />
-//   </svg>
-// );
+const classesRegular = Object.values(_classesRegular);
+// const classesRegular = ["square", "diamond", "circle", "triangle", "pentagon", "star"] as const;
+const classesSpecial = Object.values(_classesSpecial);
+const colorGamemodes = Object.freeze({ regular: "regular", fiveColors: "fiveColors" });
+const constraintGamemodes = Object.freeze({ regular: "regular", time: "time", multiplayer: "multiplayer", moves: "moves" });
+const perks = Object.freeze({ shuffle: "shuffle", bomb: "bomb", hammer: "hammer" });
 
-// const Bomb = (props) => (
-//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-//     <circle cx={46.578} cy={58.626} r={28.245} transform='rotate(20 46.578 58.626)' fill='red' stroke='#000' strokeWidth={3} />
-//     <path fill='red' d='m51.467 24.319 13.156 4.788-3.079 8.458-13.155-4.789z' />
-//     <path
-//       d='m55.251 33.926 1.73-4.752c3.662-10.062 6.535-11.866 13.828-13.643 7.294-1.776 10.622 3.866 10.622 3.866s2.87 5.16 1.599 6.914'
-//       stroke='red'
-//       strokeWidth={3}
-//     />
-//     <path
-//       d='M86.055 24.131c.218-.36 1.035-.62 1.404-.84.534-.316 1.383-.545 1.745-1.045.363-.5 1.64-.263 1.886-.937M86.583 27.297c1.398.294 2.958.172 4.287.655.356.13 1.506.744 1.754.51M84.03 29.34c.102.307.02.608.149.932.11.275.216.716.235 1.012.031.494.106 1.084.254 1.55.15.476.184 1.283.159 1.775-.02.4.174.801.217 1.178M80.926 28.987c-.155.264-.493.434-.739.608-.23.163-.37.456-.6.586-.487.273-.865.702-1.273 1.088-.144.136-.498.28-.576.437-.08.16-.07.243-.222.335-.243.148-.183.552-.567.412M80.054 25.696c-2.095-.763-3.975-2.093-6.071-2.856'
-//       stroke='red'
-//       strokeWidth={2}
-//       strokeLinecap='round'
-//     />
-//   </svg>
-// );
-
-// const Lightning = (props) => (
-//   <svg {...props} width={100} height={100} fill='none' xmlns='http://www.w3.org/2000/svg'>
-//     <path
-//       d='M35.797 53.373 67.395 6.79c.663-.978 2.174-.2 1.766.907L55.728 44.106a1 1 0 0 0 .938 1.346h13.242a1 1 0 0 1 .778 1.628l-36.76 45.573c-.754.933-2.212-.008-1.671-1.08l17.772-35.188a1 1 0 0 0-.893-1.45h-12.51a1 1 0 0 1-.828-1.562Z'
-//       fill='red'
-//       stroke='#000'
-//       strokeWidth={3}
-//     />
-//     <path
-//       d='m31.664 35.764 2.824-1.502-.555-3.15 2.301 2.222 2.825-1.502-1.403 2.876 2.301 2.222-3.168-.445-1.402 2.875-.555-3.15-3.168-.446ZM72.956 64.543l-1.936-2.478-2.955 1.075 1.758-2.607-1.936-2.477 3.023.866 1.758-2.607.11 3.143 3.023.867-2.955 1.075.11 3.143Z'
-//       fill='red'
-//     />
-//   </svg>
-// );
-
-const classesRegular = ["square", "diamond", "circle", "triangle", "pentagon", "star"];
+// type ClassRegular = (typeof classesRegular)[number];
+type ClassRegular = (typeof classesRegular)[number];
+type ClassSpecial = (typeof classesSpecial)[number];
+type ColorGamemode = keyof typeof colorGamemodes;
+type ConstraintGamemode = keyof typeof constraintGamemodes;
+type Perk = keyof typeof perks;
 
 const App = () => {
-  const [currentPieces, setCurrentPieces] = useState([]);
+  const [currentPieces, setCurrentPieces] = useState<string[]>([]);
   const [boardSize, setBoardSize] = useState(8);
   const [sizeHasChanged, setSizeHasChanged] = useState(false);
   const [modeHasChanged, setModeHasChanged] = useState(false);
-  const [draggedPiece, setDraggedPiece] = useState(null);
+  const [draggedPiece, setDraggedPiece] = useState<number | null>(null);
   const [movesMade, setMovesMade] = useState(0);
   const [count, setCount] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
   const [timeLeft, setTimeLeft] = useState(180);
-  const [colorGamemode, setColorGamemode] = useState("regular");
-  const [constraintGamemode, setConstraintGamemode] = useState("regular");
+  const [colorGamemode, setColorGamemode] = useState<ColorGamemode>(colorGamemodes.regular);
+  const [constraintGamemode, setConstraintGamemode] = useState<ConstraintGamemode>(constraintGamemodes.regular);
   const [adminMode, setAdminMode] = useState(false);
   const [movesLeft, setMovesLeft] = useState(20);
   const [gameOver, setGameOver] = useState(false);
@@ -120,39 +91,47 @@ const App = () => {
   const [freeMode, setFreeMode] = useState(false);
   const [differentValueMode, setDifferentValueMode] = useState(false);
   const [extraMoveAwarded, setExtraMoveAwarded] = useState(false);
-  const [perksUsedBlue, setPerksUsedBlue] = useState([]);
-  const [perksUsedRed, setPerksUsedRed] = useState([]);
+  const [perksUsedBlue, setPerksUsedBlue] = useState<Perk[]>([]);
+  const [perksUsedRed, setPerksUsedRed] = useState<Perk[]>([]);
+  // const [hammerMode, setHammerMode] = useState(false);
 
   // const [validatingMove, setValidatingMove] = useState(false);
 
-  const classes = colorGamemode === "regular" ? classesRegular : classesRegular.slice(0, 5);
+  const classes: ClassRegular[] = colorGamemode === colorGamemodes.regular ? classesRegular : classesRegular.slice(0, 5);
 
-  const perkAction = (type) => {
-    if (type === "shuffle") {
+  const perkAction = (type: Perk) => {
+    if (type === perks.shuffle) {
       currentPieces.sort(() => Math.random() - 0.5);
       setCurrentPieces([...currentPieces]);
       if (turn === 1) {
         // perksUsedBlue.push("shuffle");
-        setPerksUsedBlue(["shuffle", ...perksUsedBlue]);
+        setPerksUsedBlue([perks.shuffle, ...perksUsedBlue]);
       } else {
         // perksUsedRed.push("shuffle");
-        setPerksUsedRed(["shuffle", ...perksUsedRed]);
+        setPerksUsedRed([perks.shuffle, ...perksUsedRed]);
       }
-    } else if (type === "bomb") {
+    } else if (type === perks.bomb) {
       bombExplode(boardSize % 2 === 0 ? (boardSize * boardSize + boardSize) / 2 : (boardSize * boardSize - 1) / 2);
       // console.log(boardSize % 2 === 0 ? (boardSize * boardSize + boardSize) / 2 : (boardSize * boardSize - 1) / 2);
       if (turn === 1) {
         //   // perksUsedBlue.push("bomb");
         setTimeout(() => {
-          setPerksUsedBlue(["bomb", ...perksUsedBlue]);
+          setPerksUsedBlue([perks.bomb, ...perksUsedBlue]);
         }, 300);
       } else {
         setTimeout(() => {
-          setPerksUsedRed(["bomb", ...perksUsedRed]);
+          setPerksUsedRed([perks.bomb, ...perksUsedRed]);
         }, 300);
-        //   // perksUsedRed.push("bomb");
-        //   setPerksUsedRed(["bomb", ...perksUsedRed]);
-        // }
+      }
+    } else if (type === perks.hammer) {
+      // setHammerMode(true);
+      // console.log("on");
+      alert("not implemented");
+      if (turn === 1) {
+        //   // perksUsedBlue.push("bomb");
+        setPerksUsedBlue([perks.hammer, ...perksUsedBlue]);
+      } else {
+        setPerksUsedRed([perks.hammer, ...perksUsedRed]);
       }
     }
   };
@@ -166,7 +145,7 @@ const App = () => {
   };
 
   const populateBoard = () => {
-    const rawPieces = [];
+    const rawPieces: ClassRegular[] = [];
     for (let i = 0; i < boardSize * boardSize; i++) {
       rawPieces.push(getRandomPiece());
       while (
@@ -179,13 +158,13 @@ const App = () => {
     setCurrentPieces(rawPieces);
   };
 
-  let indices = new Set();
-  let arrowsVertical = new Set();
-  let arrowsHorizontal = new Set();
-  let bombs = new Set();
-  let lightnings = new Set();
+  let indices = new Set<number>();
+  let arrowsVertical = new Set<number>();
+  let arrowsHorizontal = new Set<number>();
+  let bombs = new Set<number>();
+  let lightnings = new Set<number>();
 
-  const checkForCorners = (currentPieces) => {
+  const checkForCorners = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
       if (i % boardSize === boardSize - 2) {
         i += 2;
@@ -232,7 +211,7 @@ const App = () => {
     }
   };
 
-  const checkForTsAndPluses = (currentPieces) => {
+  const checkForTsAndPluses = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
       if (i % boardSize === boardSize - 2) {
         i += 2;
@@ -274,25 +253,22 @@ const App = () => {
     }
   };
 
-  const explodeSpecials = (item) => {
-    // !validatingMove &&
-    // array.forEach((item) => {
-    if (currentPieces[item].includes("arrowHorizontal")) {
+  const explodeSpecials = (item: number) => {
+    if (currentPieces[item].includes(_classesSpecial.arrowHorizontal)) {
       arrowHorizontalExplode(item);
     }
-    if (currentPieces[item].includes("arrowVertical")) {
+    if (currentPieces[item].includes(_classesSpecial.arrowVertical)) {
       arrowVerticalExplode(item);
     }
-    if (currentPieces[item].includes("bomb")) {
+    if (currentPieces[item].includes(_classesSpecial.bomb)) {
       bombExplode(item);
     }
-    if (currentPieces[item].includes("lightning")) {
+    if (currentPieces[item].includes(_classesSpecial.lightning)) {
       lightningExplode(12);
     }
-    // });
   };
 
-  const checkForRowsOfFive = (currentPieces) => {
+  const checkForRowsOfFive = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * boardSize - 4; i++) {
       if (i % boardSize === boardSize - 4) {
         i += 4;
@@ -314,7 +290,7 @@ const App = () => {
     }
   };
 
-  const checkForRowsOfFour = (currentPieces) => {
+  const checkForRowsOfFour = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * boardSize - 3; i++) {
       if (i % boardSize === boardSize - 3) {
         i += 3;
@@ -334,7 +310,7 @@ const App = () => {
     }
   };
 
-  const checkForRowsOfThree = (currentPieces) => {
+  const checkForRowsOfThree = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * boardSize - 2; i++) {
       if (i % boardSize === boardSize - 2) {
         i += 2;
@@ -354,34 +330,7 @@ const App = () => {
     }
   };
 
-  // const checkForVerticalMatches = (currentPieces) => {
-  //   for (let i = 0; i < boardSize * (boardSize - 2); i++) {
-  //     // const column = columnGeneral(i);
-  //     const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
-  //     const currentType = currentPieces[i];
-
-  //     if (currentType) {
-  //       for (let j = column.length; j >= 3; j--) {
-  //         let currentColumn = column.slice(0, j);
-  //         if (
-  //           currentColumn.every((piece) => currentPieces[piece] === currentType) &&
-  //           currentColumn[currentColumn.length - 1] <= currentPieces.length
-  //         ) {
-  //           // console.log(currentColumn);
-  //           currentColumn.forEach((index) => {
-  //             // currentPieces[index] = "";
-  //             indices.add(index);
-  //             // console.log(indices);
-  //           });
-  //           console.log(i + " " + currentColumn.length + "v " + currentType);
-  //           return true;
-  //         }
-  //       }
-  //     }
-  //   }
-  // };
-
-  const checkForColumnsOfFive = (currentPieces) => {
+  const checkForColumnsOfFive = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * (boardSize - 4); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize, i + 4 * boardSize];
@@ -400,7 +349,7 @@ const App = () => {
     }
   };
 
-  const checkForColumnsOfFour = (currentPieces) => {
+  const checkForColumnsOfFour = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * (boardSize - 3); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize, i + 3 * boardSize];
@@ -419,7 +368,7 @@ const App = () => {
     }
   };
 
-  const checkForColumnsOfThree = (currentPieces) => {
+  const checkForColumnsOfThree = (currentPieces: string[]) => {
     for (let i = 0; i < boardSize * (boardSize - 2); i++) {
       // const column = columnGeneral(i);
       const column = [i, i + boardSize, i + 2 * boardSize];
@@ -438,13 +387,13 @@ const App = () => {
   };
 
   //!ok
-  const arrowHorizontalExplode = (index) => {
+  const arrowHorizontalExplode = (index: number) => {
     let start = index;
     while (start % boardSize > 0) {
       start -= 1;
       // console.log(start);
     }
-    let row = [];
+    let row: number[] = [];
     for (let i = 0; i < boardSize; i++) {
       row.push(start);
       start++;
@@ -454,9 +403,9 @@ const App = () => {
   };
 
   //!ok
-  const arrowVerticalExplode = (index) => {
+  const arrowVerticalExplode = (index: number) => {
     let start = index % boardSize;
-    let column = [];
+    let column: number[] = [];
     for (let i = 0; i < boardSize; i++) {
       column.push(start + i * boardSize);
     }
@@ -464,11 +413,9 @@ const App = () => {
     column.forEach((item) => indices.add(item));
   };
 
-  // console.log(arrowVerticalExplode(35));
-
   //!ok
-  const bombExplode = (i) => {
-    let pieces = [];
+  const bombExplode = (i: number) => {
+    let pieces: (number | false)[][] = [];
     pieces.push([i - 2 * boardSize >= 0 && i - 2 * boardSize]);
 
     pieces.push([
@@ -496,13 +443,13 @@ const App = () => {
     // return pieces.flat().filter((item) => item !== false);
     pieces
       .flat()
-      .filter((item) => item !== false)
+      .filter((item): item is number => item !== false)
       .forEach((item) => indices.add(item));
   };
 
   //!ok
-  const lightningExplode = (num) => {
-    let idx = [];
+  const lightningExplode = (num: number) => {
+    let idx: number[] = [];
     currentPieces.map((el, index) => {
       idx.push(index);
     });
@@ -514,9 +461,6 @@ const App = () => {
     console.log(shuffled.slice(0, num));
   };
 
-  // addTwoNumbers(1, 2);
-  // subtractTwoNumbers(5, 2);
-
   const removeAllIndices = () => {
     indices.forEach((item) => {
       explodeSpecials(item);
@@ -527,7 +471,7 @@ const App = () => {
       } else {
         let raw = 0;
         indices.forEach((item) => {
-          raw += classes.indexOf(currentPieces[item].split(" ")[0]) + 1;
+          raw += (classes as string[]).indexOf(currentPieces[item].split(" ")[0]) + 1;
         });
         // console.log(raw);
         return raw;
@@ -548,20 +492,20 @@ const App = () => {
       currentPieces[item] = currentPieces[item] + " lightning";
     });
     bombs.forEach((item) => {
-      if (!currentPieces[item].includes("lightning")) {
+      if (!currentPieces[item].includes(_classesSpecial.lightning)) {
         currentPieces[item] = currentPieces[item] + " bomb";
       }
     });
     arrowsHorizontal.forEach((item) => {
-      if (!currentPieces[item].includes("lightning") && !currentPieces[item].includes("bomb")) {
+      if (!currentPieces[item].includes(_classesSpecial.lightning) && !currentPieces[item].includes(_classesSpecial.bomb)) {
         currentPieces[item] = currentPieces[item] + " arrowHorizontal";
       }
     });
     arrowsVertical.forEach((item) => {
       if (
-        !currentPieces[item].includes("lightning") &&
-        !currentPieces[item].includes("bomb") &&
-        !currentPieces[item].includes("arrowHorizontal")
+        !currentPieces[item].includes(_classesSpecial.lightning) &&
+        !currentPieces[item].includes(_classesSpecial.bomb) &&
+        !currentPieces[item].includes(_classesSpecial.arrowHorizontal)
       ) {
         currentPieces[item] = currentPieces[item] + " arrowVertical";
       }
@@ -587,23 +531,8 @@ const App = () => {
     }, 100);
   };
 
-  const moveIntoSquareBelow = () => {
-    for (let i = 0; i < boardSize * boardSize; i++) {
-      if (currentPieces[i] === "") {
-        if (i > boardSize) {
-          currentPieces[i] = currentPieces[i - boardSize];
-          currentPieces[i - boardSize] = "";
-          setCurrentPieces([...currentPieces]);
-        } else {
-          currentPieces[i] = getRandomPiece();
-          setCurrentPieces([...currentPieces]);
-        }
-      }
-    }
-  };
-
-  const recursivelyDropColumn = () => {
-    const dropAllAbove = (index) => {
+  const recursivelyDropColumn = (currentPieces: string[]) => {
+    const dropAllAbove = (index: number) => {
       if (index > boardSize - 1) {
         currentPieces[index] = currentPieces[index - boardSize];
         setCurrentPieces([...currentPieces]);
@@ -621,7 +550,7 @@ const App = () => {
     }
   };
 
-  const swapPieces = (index, index2) => {
+  const swapPieces = (index: number, index2: number) => {
     let temp = currentPieces[index];
     currentPieces[index] = currentPieces[index2];
     currentPieces[index2] = temp;
@@ -642,27 +571,27 @@ const App = () => {
     }
   };
 
-  const dragStart = (event) => {
+  const dragStart = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
     if (!gameOver && movesLeft) {
       // console.log(event.target.attributes["data-key"].nodeValue);
-      setDraggedPiece(event.target.attributes["data-key"].nodeValue);
+      setDraggedPiece((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
     }
   };
-  const dragDrop = (event) => {
+  const dragDrop = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
     // console.log(event);
     // console.log(event.currentTarget);
     // setValidatingMove(true);
-    const targetPiece = event.target.attributes["data-key"].nodeValue;
+    const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
     if (
       (draggedPiece == targetPiece - 1 && draggedPiece % boardSize != boardSize - 1) ||
-      (draggedPiece - 1 == targetPiece && draggedPiece % boardSize != 0) ||
-      draggedPiece - boardSize == targetPiece ||
+      (draggedPiece! - 1 == targetPiece && draggedPiece! % boardSize != 0) ||
+      draggedPiece! - boardSize == targetPiece ||
       draggedPiece == targetPiece - boardSize ||
       adminMode
     ) {
       let piecesToCheck = [...currentPieces];
-      let temp = currentPieces[draggedPiece];
-      piecesToCheck[draggedPiece] = currentPieces[targetPiece];
+      let temp = currentPieces[draggedPiece!];
+      piecesToCheck[draggedPiece!] = currentPieces[targetPiece];
       piecesToCheck[targetPiece] = temp;
       if (
         // checkForVerticalMatches(piecesToCheck) ||
@@ -676,7 +605,7 @@ const App = () => {
         freeMode ||
         adminMode
       )
-        swapPieces(draggedPiece, targetPiece);
+        swapPieces(draggedPiece!, targetPiece);
     }
     // setValidatingMove(false);
   };
@@ -706,7 +635,6 @@ const App = () => {
 
   useEffect(() => {
     classesInRandomOrder();
-
     populateBoard();
     // console.log(currentPieces);
   }, [boardSize, freeMode, colorGamemode, constraintGamemode, replay, differentValueMode]);
@@ -744,28 +672,8 @@ const App = () => {
       checkForRowsOfThree(currentPieces);
       checkForColumnsOfThree(currentPieces);
 
-      // if (!checkForRowsOfFive(currentPieces) && !checkForColumnsOfFive(currentPieces)) {
-      //   if (!checkForCorners(currentPieces) && !checkForTsAndPluses(currentPieces)) {
-      //     checkForRowsOfFour(currentPieces);
-      //     checkForColumnsOfFour(currentPieces);
-      //   }
-      // }
-
-      // checkForRowsOfThree(currentPieces);
-      // checkForColumnsOfThree(currentPieces);
-
-      // checkForHorizontalMatches(currentPieces);
-      // checkForVerticalMatches(currentPieces);
-      // console.log(indices);
-      // console.log(removeAllIndices(currentPieces));
       removeAllIndices();
-      // console.log(currentPieces);
-      // setInterval(() => {
-      //   moveIntoSquareBelow();
-      // }, 2000);
-      // moveIntoSquareBelow();
-      recursivelyDropColumn();
-      // console.log("ended");
+      recursivelyDropColumn(currentPieces);
     }, 250);
     return () => {
       clearInterval(timer);
@@ -796,7 +704,7 @@ const App = () => {
       )}
       <div
         className='controlPanel'
-        style={menuIsOpen ? { display: "flex", zIndex: 10, width: 300, transition: "all 0.2s", height: "90vh" } : null}>
+        style={menuIsOpen ? { display: "flex", zIndex: 10, width: 300, transition: "all 0.2s", height: "90vh" } : void 0}>
         <div className='boardSizeBtns'>
           <button
             className='boardSizeBtn'
@@ -848,7 +756,7 @@ const App = () => {
         <button
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
-              setColorGamemode(colorGamemode === "regular" ? "fiveColors" : "regular");
+              setColorGamemode(colorGamemode === colorGamemodes.regular ? colorGamemodes.fiveColors : colorGamemodes.regular);
               // setMovesMade(0);
               // setCount(0);
               // // setReplay(!replay);
@@ -858,20 +766,12 @@ const App = () => {
               // !modeHasChanged && setModeHasChanged(true);
             }
           }}>
-          {colorGamemode === "regular" ? "Режим пяти цветов" : "Цвета: обычный режим"}
+          {colorGamemode === colorGamemodes.regular ? "Режим пяти цветов" : "Цвета: обычный режим"}
         </button>
         <button
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setFreeMode(!freeMode);
-              // setMovesMade(0);
-              // setCount(0);
-              // setCount2(0);
-              // setRoundNumber(1);
-              // setTurn(1);
-              // setMovesLeft(3);
-              // // setReplay(!replay);
-              // setGameOver(false);
               resetEverything();
 
               // !modeHasChanged && setModeHasChanged(true);
@@ -880,74 +780,50 @@ const App = () => {
           {!freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}
         </button>
 
-        {constraintGamemode === "regular" ? (
+        {constraintGamemode === constraintGamemodes.regular ? (
           <button
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
-                setConstraintGamemode("moves");
-                // setMovesMade(0);
-                // setCount(0);
-                // // setReplay(!replay);
-                // setGameOver(false);
-                // !modeHasChanged && setModeHasChanged(true);
+                setConstraintGamemode(constraintGamemodes.moves);
                 setMovesLeft(20);
                 resetEverything();
               }
             }}>
-            {constraintGamemode === "regular" ? "Ограниченные ходы" : "Ограничения: обычный режим"}
+            {constraintGamemode === constraintGamemodes.regular ? "Ограниченные ходы" : "Ограничения: обычный режим"}
           </button>
         ) : null}
 
-        {constraintGamemode === "regular" ? (
+        {constraintGamemode === constraintGamemodes.regular ? (
           <button
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("time");
-                // setMovesMade(0);
-                // setCount(0);
-                // // setReplay(!replay);
-                // setGameOver(false);
-                // !modeHasChanged && setModeHasChanged(true);
                 setTimeLeft(60);
                 resetEverything();
               }
             }}>
-            {constraintGamemode === "regular" ? "Ограниченное время" : "Ограничения: обычный режим"}
+            {constraintGamemode === constraintGamemodes.regular ? "Ограниченное время" : "Ограничения: обычный режим"}
           </button>
         ) : null}
 
-        {constraintGamemode === "regular" ? (
+        {constraintGamemode === constraintGamemodes.regular ? (
           <button
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
                 setConstraintGamemode("multiplayer");
-                // setMovesMade(0);
-                // setCount(0);
-                // setCount2(0);
-                // setRoundNumber(1);
-                // setTurn(1);
-                // setMovesLeft(3);
-                // // setReplay(!replay);
-                // setGameOver(false);
-                // !modeHasChanged && setModeHasChanged(true);
                 setMovesLeft(3);
 
                 resetEverything();
               }
             }}>
-            {constraintGamemode === "regular" ? "Два игрока" : "Ограничения: обычный режим"}
+            {constraintGamemode === constraintGamemodes.regular ? "Два игрока" : "Ограничения: обычный режим"}
           </button>
         ) : null}
-        {constraintGamemode !== "regular" ? (
+        {constraintGamemode !== constraintGamemodes.regular ? (
           <button
             onClick={() => {
               if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
-                setConstraintGamemode("regular");
-                // setMovesMade(0);
-                // setCount(0);
-                // // setReplay(!replay);
-                // setGameOver(false);
-                // !modeHasChanged && setModeHasChanged(true);
+                setConstraintGamemode(constraintGamemodes.regular);
                 setMovesLeft(3);
 
                 resetEverything();
@@ -961,16 +837,6 @@ const App = () => {
           onClick={() => {
             if (modeHasChanged || window.confirm("Сменить режим? Счет будет обнулен")) {
               setDifferentValueMode(!differentValueMode);
-              // setMovesMade(0);
-              // setCount(0);
-              // setCount2(0);
-              // setRoundNumber(1);
-              // setTurn(1);
-              // constraintGamemode === "multiplayer" && setMovesLeft(3);
-              // constraintGamemode === "moves" && setMovesLeft(20);
-              // // setReplay(!replay);
-              // setGameOver(false);
-              // !modeHasChanged && setModeHasChanged(true);
               resetEverything();
             }
           }}>
@@ -981,9 +847,6 @@ const App = () => {
             if (adminMode || window.prompt("Ага, думаешь, так просто? Введи пароль") === "test") {
               //да, я знаю, что его здесь видно, но много ли кто сюда полезет, кроме тебя?
               setAdminMode(!adminMode);
-              // setMovesMade(0);
-              // setCount(0);
-              // setReplay(!replay);
               setGameOver(false);
               // !modeHasChanged && setModeHasChanged(true);
             }
@@ -998,27 +861,28 @@ const App = () => {
           onClick={() => {
             console.log(perksUsedBlue, perksUsedRed);
           }}>
-          Режим: {colorGamemode === "regular" ? "обычный" : colorGamemode === "fiveColors" ? "пять цветов" : null}
+          Режим: {colorGamemode === colorGamemodes.regular ? "обычный" : colorGamemode === colorGamemodes.fiveColors ? "пять цветов" : null}
           {adminMode && ", админ"}
           {freeMode && ", свободные ходы"}
-          {constraintGamemode === "moves"
+          {constraintGamemode === constraintGamemodes.moves
             ? ", ограниченные ходы"
-            : constraintGamemode === "time"
+            : constraintGamemode === constraintGamemodes.time
             ? ", ограниченное время"
-            : constraintGamemode === "multiplayer"
+            : constraintGamemode === constraintGamemodes.multiplayer
             ? ", два игрока"
             : null}
           {differentValueMode && ", разная ценность"}
         </span>
-        {constraintGamemode === "multiplayer" && (
+        {constraintGamemode === constraintGamemodes.multiplayer && (
           <span className='gamemode'>
-            Раунд {roundNumber}/5. Очередь: <span style={turn === 1 ? { color: "#3498db" } : { color: "#e74c3c" }}>игрок {turn}</span>.
-            Осталось ходов: {movesLeft}.
+            Раунд {roundNumber}/5. Очередь:{" "}
+            <span style={turn === 1 ? { color: "#3498db" } : { color: "#e74c3c" }}>{turn === 1 ? "синий" : "красный"}</span>. Осталось
+            ходов: {movesLeft}.
           </span>
         )}
         {movesMade > 0 ? (
           <>
-            {constraintGamemode !== "multiplayer" && (
+            {constraintGamemode !== constraintGamemodes.multiplayer && (
               <span>
                 Счет: {count}
                 {count > 1000 && ". Сумасшедший!"}
@@ -1044,46 +908,68 @@ const App = () => {
               <div className='twoPlayerStatsWrap'>
                 <div className='twoPlayersStats'>
                   <div className='playerWrap'>
-                    <span style={turn === 1 ? { color: "#3498db" } : { color: "white" }}>Игрок 1 - счет: {count}</span>
+                    <span style={turn === 1 ? { color: "#3498db" } : { color: "white" }}>{count}</span>
                     <div className='perks blue'>
                       <span
-                        className={`perk blue shuffle${perksUsedBlue.includes("shuffle") || perksUsedBlue.length === 2 ? " used" : ""}${
+                        className={`perk blue shuffle${perksUsedBlue.includes(perks.shuffle) || perksUsedBlue.length === 3 ? " used" : ""}${
                           turn === 1 && movesLeft !== 0 ? "" : " disabled"
                         }`}
                         onClick={() => {
-                          ((!perksUsedBlue.includes("shuffle") && perksUsedBlue.length < 2 && turn === 1 && movesLeft !== 0) ||
+                          ((!perksUsedBlue.includes(perks.shuffle) && perksUsedBlue.length < 3 && turn === 1 && movesLeft !== 0) ||
                             adminMode) &&
-                            perkAction("shuffle");
+                            perkAction(perks.shuffle);
                         }}></span>
                       <span
-                        className={`perk blue bomb${perksUsedBlue.includes("bomb") || perksUsedBlue.length === 2 ? " used" : ""}${
+                        className={`perk blue bomb${perksUsedBlue.includes(perks.bomb) || perksUsedBlue.length === 3 ? " used" : ""}${
                           turn === 1 && movesLeft !== 0 ? "" : " disabled"
                         }`}
                         onClick={() => {
-                          ((!perksUsedBlue.includes("bomb") && perksUsedBlue.length < 2 && turn === 1 && movesLeft !== 0) || adminMode) &&
-                            perkAction("bomb");
+                          ((!perksUsedBlue.includes(perks.bomb) && perksUsedBlue.length < 3 && turn === 1 && movesLeft !== 0) ||
+                            adminMode) &&
+                            perkAction(perks.bomb);
+                          // setPerksUsedBlue(["bomb", ...perksUsedBlue]);
+                        }}></span>
+                      <span
+                        className={`perk blue hammer${perksUsedBlue.includes(perks.hammer) || perksUsedBlue.length === 3 ? " used" : ""}${
+                          turn === 1 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedBlue.includes(perks.hammer) && perksUsedBlue.length < 3 && turn === 1 && movesLeft !== 0) ||
+                            adminMode) &&
+                            perkAction(perks.hammer);
                           // setPerksUsedBlue(["bomb", ...perksUsedBlue]);
                         }}></span>
                     </div>
                   </div>
                   <div className='playerWrap'>
-                    <span style={turn === 2 ? { color: "#e74c3c" } : { color: "white" }}>Игрок 2 - счет: {count2}</span>
+                    <span style={turn === 2 ? { color: "#e74c3c" } : { color: "white" }}> {count2}</span>
                     <div className='perks red'>
                       <span
-                        className={`perk red shuffle${perksUsedRed.includes("shuffle") || perksUsedRed.length === 2 ? " used" : ""}${
+                        className={`perk red shuffle${perksUsedRed.includes(perks.shuffle) || perksUsedRed.length === 3 ? " used" : ""}${
                           turn === 2 && movesLeft !== 0 ? "" : " disabled"
                         }`}
                         onClick={() => {
-                          ((!perksUsedRed.includes("shuffle") && perksUsedRed.length < 2 && turn === 2 && movesLeft !== 0) || adminMode) &&
-                            perkAction("shuffle");
+                          ((!perksUsedRed.includes(perks.shuffle) && perksUsedRed.length < 3 && turn === 2 && movesLeft !== 0) ||
+                            adminMode) &&
+                            perkAction(perks.shuffle);
                         }}></span>
                       <span
-                        className={`perk red bomb${perksUsedRed.includes("bomb") || perksUsedRed.length === 2 ? " used" : ""}${
+                        className={`perk red bomb${perksUsedRed.includes(perks.bomb) || perksUsedRed.length === 3 ? " used" : ""}${
                           turn === 2 && movesLeft !== 0 ? "" : " disabled"
                         }`}
                         onClick={() => {
-                          ((!perksUsedRed.includes("bomb") && perksUsedRed.length < 2 && turn === 2 && movesLeft !== 0) || adminMode) &&
-                            perkAction("bomb");
+                          ((!perksUsedRed.includes(perks.bomb) && perksUsedRed.length < 3 && turn === 2 && movesLeft !== 0) || adminMode) &&
+                            perkAction(perks.bomb);
+                        }}></span>
+                      <span
+                        className={`perk red hammer${perksUsedRed.includes(perks.hammer) || perksUsedRed.length === 3 ? " used" : ""}${
+                          turn === 2 && movesLeft !== 0 ? "" : " disabled"
+                        }`}
+                        onClick={() => {
+                          ((!perksUsedRed.includes(perks.hammer) && perksUsedRed.length < 3 && turn === 2 && movesLeft !== 0) ||
+                            adminMode) &&
+                            perkAction(perks.hammer);
+                          // setPerksUsedBlue(["bomb", ...perksUsedBlue]);
                         }}></span>
                     </div>
                   </div>
@@ -1094,7 +980,7 @@ const App = () => {
                       setTurn(2);
                       setMovesLeft(3);
                     }}>
-                    Передать ход игроку 2
+                    Передать ход красному
                   </button>
                 )}
                 {movesLeft === 0 && turn === 2 && roundNumber < 5 && (
@@ -1104,19 +990,19 @@ const App = () => {
                       setMovesLeft(3);
                       setRoundNumber(roundNumber + 1);
                     }}>
-                    Передать ход игроку 1
+                    Передать ход синему
                   </button>
                 )}
 
                 {gameOver && (
-                  <span style={{ color: "green" }}>
+                  <span style={count > count2 ? { color: "#3498db" } : count < count2 ? { color: "#e74c3c" } : { color: "#fff" }}>
                     {count > count2
-                      ? "Победитель: игрок 1!"
+                      ? "Победитель: синий!"
                       : count2 === 0
                       ? "Вы вообще пытались?"
                       : count === count2
                       ? "Ничья!"
-                      : "Победитель: игрок 2!"}
+                      : "Победитель: красный!"}
                   </span>
                 )}
               </div>
@@ -1155,11 +1041,12 @@ const App = () => {
       <div
         className='board'
         // ref={board}
-        onClick={(event) => {
-          adminMode && explodeSpecials([event.target.attributes["data-key"].value]);
+        onClick={(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+          adminMode && explodeSpecials(parseInt((event.target as HTMLSpanElement).attributes["data-key"].value));
+          // hammerMode && explodeSpecials([event.target.attributes["data-key"].value]) && setHammerMode(false);
           // adminMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
         }}
-        style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: `${boardSize}` * 50, width: `${boardSize}` * 50 }}>
+        style={{ gridTemplateColumns: `repeat(${boardSize}, 1fr)`, height: boardSize * 50, width: boardSize * 50 }}>
         {currentPieces.map((e, i) => (
           <span
             className={"piece " + e}
@@ -1208,451 +1095,12 @@ const App = () => {
             {classes.map((item, index) => (
               <div className='rule' key={index}>
                 <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
-                <span style={{ color: "white", position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
+                <span style={{ position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
               </div>
             ))}
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .App {
-          background: linear-gradient(90deg, #29323c 0%, #485563 100%);
-          width: 100vw;
-          height: 100vh;
-        }
-        .rules {
-          position: absolute;
-          bottom: 50px;
-          left: 350px;
-          margin-top: 100px;
-          display: flex;
-          flex-direction: row;
-          justify-content: center;
-        }
-        .arrowRule {
-          background-image: url("/arrow.png");
-          background-size: 37px 8px;
-          width: 37px;
-          height: 8px;
-        }
-        .bombRule {
-          background-image: url("/bombs.png");
-          background-size: 105px 27px;
-          width: 105px;
-          height: 27px;
-        }
-        .lightningRule {
-          background-image: url("/lightning.png");
-          background-size: 47px 8px;
-          width: 47px;
-          height: 8px;
-        }
-        .moveRules {
-          display: flex;
-          flex-direction: column;
-          margin-right: 10px;
-        }
-        .moveRules .rule {
-          justify-content: space-between;
-        }
-
-        .piece.rule {
-          filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
-          margin: 0;
-        }
-        .valueRules {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          column-gap: 5px;
-          row-gap: 5px;
-        }
-        .rule {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          position: relative;
-        }
-        .openMenuBtn {
-          width: 40px;
-          height: 40px;
-          font-size: 30px;
-          line-height: 40px;
-          border-radius: 50%;
-          display: none;
-        }
-        .overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background-color: rgba(0, 0, 0, 0.5);
-          z-index: 5;
-        }
-
-        .controlPanel {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 300px;
-          height: 100vh;
-          background: linear-gradient(90deg, #485563 0%, #29323c 100%);
-          border: 5px solid #ffffff88;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          z-index: 100;
-        }
-
-        .controlPanel button:not(.boardSizeBtn) {
-          padding: 5px 0;
-          background-color: white;
-          border-radius: 10px;
-          margin-bottom: 5px;
-          width: 100%;
-          color: #29323c;
-        }
-
-        .board {
-          /* width: 400px; */
-          /* height: 400px; */
-          /* max-width: 800px; */
-          /* max-height: 800px; */
-          position: absolute;
-          top: calc(50vh - 200px);
-          left: 350px;
-          /* background-color: #fff; */
-          display: grid;
-          /* grid-template-columns: repeat(8, 1fr); */
-        }
-
-        .piece {
-          width: 0;
-          height: 0;
-          margin: auto auto;
-          /* box-shadow: 0 0 2px #000; */
-          filter: blur(100%);
-          /* transition: 2s ease; */
-          border-radius: 5px;
-          background-repeat: no-repeat;
-          background-position: 50%;
-          cursor: grab;
-          transition: all 0.1s;
-        }
-
-        .shrink {
-          transform: scale(0.01);
-          transform-origin: 50%;
-          transition: all 0.09s;
-        }
-
-        .square {
-          width: 90%;
-          height: 90%;
-          background: #e74c3c;
-        }
-
-        .diamond {
-          background: #8e44ad;
-          transform: rotate(45deg) !important;
-          width: 70%;
-          height: 70%;
-          margin: auto;
-        }
-
-        .index {
-          /* background-color: white;
-  color: black;
-  /* padding: 3px; */
-          /* border-radius: 50%; */
-          display: block;
-          /* width: 15px; */
-          /* height: 15px;   */
-        }
-
-        .diamond .index {
-          transform: rotate(-45deg);
-        }
-
-        .circle {
-          width: 90%;
-          height: 90%;
-          background: #3498db;
-          border-radius: 50%;
-          transform: rotate(360deg);
-        }
-
-        .triangle {
-          width: 100%;
-          height: 100%;
-          /* background: #e67e22; */
-          filter: brightness(0) saturate(100%) invert(55%) sepia(87%) saturate(1542%) hue-rotate(349deg) brightness(96%) contrast(88%);
-          background-image: url("/img/triangle.svg");
-          background-size: 45px;
-          /* transform: rotate(120deg); */
-        }
-
-        .pentagon {
-          width: 100%;
-          height: 100%;
-          /* background: #2ecc71; */
-          filter: brightness(0) saturate(100%) invert(65%) sepia(75%) saturate(431%) hue-rotate(91deg) brightness(88%) contrast(90%);
-          background-image: url("/img/pentagon.svg");
-          background-size: 40px;
-          transform: rotate(144deg);
-        }
-
-        .star {
-          width: 100%;
-          height: 100%;
-          /* background: #e0e933; */
-          filter: brightness(0) saturate(100%) invert(67%) sepia(97%) saturate(298%) hue-rotate(19deg) brightness(102%) contrast(114%);
-          background-image: url("/img/star.svg");
-          background-size: 45px;
-          transform: rotate(288deg);
-        }
-        .arrowHorizontal,
-        .arrowVertical,
-        .bomb,
-        .lightning {
-          width: 100%;
-          height: 100%;
-        }
-        .arrowHorizontal {
-          background-image: url("/img/arrowHorizontal.svg") !important;
-          background: none;
-          transform: rotate(0deg) !important;
-          background-repeat: no-repeat;
-          background-size: 100%;
-          background-position: 50%;
-        }
-        .arrowVertical {
-          background-image: url("/img/arrowVertical.svg") !important;
-          background: none;
-          transform: rotate(0deg) !important;
-          background-repeat: no-repeat;
-          background-size: 100%;
-          background-position: 50%;
-        }
-        .bomb {
-          background-image: url("/img/bomb.svg") !important;
-          background: none;
-          transform: rotate(0deg) !important;
-          background-repeat: no-repeat;
-          background-size: 100%;
-          background-position: 50%;
-        }
-        .lightning {
-          background-image: url("/img/lightning.svg") !important;
-          background: none;
-          transform: rotate(0deg) !important;
-          background-repeat: no-repeat;
-          background-size: 100%;
-          background-position: 50%;
-        }
-        .square.arrowHorizontal,
-        .square.arrowVertical,
-        .square.bomb,
-        .square.lightning {
-          filter: brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1235%) hue-rotate(335deg) brightness(94%) contrast(92%);
-        }
-
-        .diamond.arrowHorizontal,
-        .diamond.arrowVertical,
-        .diamond.bomb,
-        .diamond.lightning {
-          filter: brightness(0) saturate(100%) invert(33%) sepia(14%) saturate(4964%) hue-rotate(251deg) brightness(94%) contrast(87%);
-        }
-
-        .circle.arrowHorizontal,
-        .circle.arrowVertical,
-        .circle.bomb,
-        .circle.lightning {
-          filter: brightness(0) saturate(100%) invert(58%) sepia(98%) saturate(2345%) hue-rotate(178deg) brightness(91%) contrast(88%);
-        }
-
-        .boardSizeBtns {
-          bottom: 20px;
-          left: calc(50vw - 90px);
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          margin: 20px 0;
-        }
-
-        .boardSizeBtn {
-          background-color: #fff;
-          /* padding: 10px; */
-          border-radius: 50%;
-          width: 40px;
-          height: 40px;
-          display: block;
-          font-size: 20px;
-          cursor: pointer;
-          transition: all 0.2s;
-          color: black;
-        }
-
-        .boardSizeBtns button:hover {
-          opacity: 0.5;
-          transition: all 0.2s;
-        }
-
-        .boardSizeBtns span {
-          color: white;
-          padding: 0 10px;
-        }
-
-        .stats {
-          font-size: 20px;
-          color: white;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          width: 400px;
-          margin-left: 350px;
-        }
-        .gamemode {
-          text-align: center;
-          font-size: 18px;
-        }
-        .twoPlayerStatsWrap {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-
-        .twoPlayerStatsWrap button {
-          padding: 5px 0;
-          background-color: white;
-          border-radius: 10px;
-          margin-bottom: 5px;
-          width: 50%;
-          color: #29323c;
-        }
-        .twoPlayersStats {
-          width: 320px;
-          display: flex;
-          flex-direction: row;
-          justify-content: space-between;
-          align-items: center;
-        }
-        .playerWrap * {
-          font-size: 18px;
-        }
-
-        .playerWrap {
-          display: flex;
-          flex-direction: column;
-        }
-        .perks {
-          display: flex;
-          flex-direction: row;
-        }
-        .perks.red {
-          justify-content: flex-end;
-        }
-        .perk {
-          width: 40px;
-          height: 40px;
-          margin-right: 3px;
-          border-radius: 10px;
-          border: 3px solid black;
-          cursor: pointer;
-          transition: all 0.3s;
-        }
-        .perk:hover {
-          filter: brightness(120%);
-          transition: all 0.3s;
-        }
-        .perk.blue {
-          background-color: #3498db;
-          border-color: #0b2637;
-        }
-        .perk.red {
-          background-color: #e74c3c;
-          border-color: #992013;
-        }
-        .perk.used {
-          opacity: 0.5;
-        }
-        .perk.disabled {
-          filter: grayscale(0.4);
-        }
-        .shuffle {
-          background-image: url("/shuffle.png");
-          background-position: 50%;
-          background-repeat: no-repeat;
-        }
-        .perk.bomb {
-          background-image: url("/bomb.png") !important;
-          background-position: 50%;
-          background-repeat: no-repeat;
-          background-size: 30px;
-        }
-
-        @media screen and (max-width: 768px) {
-          .App {
-            overflow: hidden;
-            height: 90vh;
-          }
-
-          .rules {
-            left: 10px;
-            bottom: 75px;
-          }
-          .stats {
-            margin-left: 20px;
-            max-width: 80vw;
-          }
-          .openMenuBtn {
-            display: block;
-          }
-          .board {
-            /* display: none; */
-            top: calc(50vh - 160px);
-            left: 20px;
-            max-width: 400px;
-            max-height: 400px;
-            height: 80vw !important;
-            width: 80vw !important;
-          }
-          .piece {
-            width: 100%;
-            height: 100%;
-            max-width: 45px;
-            max-height: 45px;
-          }
-          .triangle {
-            background-size: 95%;
-          }
-          .star {
-            background-size: 90%;
-          }
-          .pentagon {
-            background-size: 85%;
-          }
-          .diamond {
-            width: 75%;
-            height: 75%;
-            max-width: 36px;
-            max-height: 36px;
-          }
-          .circle {
-            width: 90%;
-            height: 90%;
-          }
-          .square {
-            width: 90%;
-            height: 90%;
-          }
-          .controlPanel {
-            width: 0;
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   );
 };
