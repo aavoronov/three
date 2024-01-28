@@ -1,25 +1,33 @@
 //TODO анимации
-//TODO автоопределение конца хода
 //TODO экстра мувы
 //TODO сервер, доска рекордов ограниченных режимов
 //TODO ход из двух спецфишек
 //TODO бустеры
 //TODO больше абилок
 
-//TODO тики
-//TODO отслеживание отсутствия изменений
-//TODO расчет возможных ходов
-//TODO перемешивание, если нет ходов
+//done тики //? и так все на тиках. Откалибровать задержки?
+//done автоопределение конца хода: отслеживание отсутствия изменений
+//done расчет возможных ходов
+//TODO расчет возможных ходов со спецфишками и с образованием спецфишек
+//done перемешать доску без схлопываний
+//done перемешивание, если нет ходов
 //TODO бот-соперник
+//TODO свайп вместо перетаскивания
+
+//done эффект от молнии
+//fixed молния срабатывает несколько раз в цепочке спецфишек
+//? kinda done разобраться с гидратацией
+//fixed разобраться с мутацией _currentPieces вне экшена
+//fixed спецфишки уничтожают друг друга, а не активируют
+//fixed молния предпочитает выбирать фишки с начала доски
 // // obsolete переписать проверку матчей под совпадение двух подряд фишек
-//? kinda done перемешать
 //fixed первая ячейка не падает
 //fixed спецфишки не отрабатывают в первом столбце
 //fixed фишки не успевают падать и схлопываются по 3 вместо 4
 //fixed бомбы образуются из плюса с предыдущих рядов
 //DONE абилки
-//DONE режим админа
-//DONE разделить логику ходов
+//DONE режим админа/дебага
+//DONE разделить логику ходов //? что я тут имел в виду?
 //DONE стрелки
 //DONE бомбы
 //DONE молнии
@@ -39,14 +47,14 @@
 //DONE формат времени
 
 // import "./index.css";
-import React, { useState, useEffect, useRef } from "react";
+import { runInAction } from "mobx";
+import { observer } from "mobx-react";
 import Head from "next/head";
 import Script from "next/script";
-import { observer } from "mobx-react";
-import { BoardViewModel } from "../viewModels/board";
-import { perks, colorGamemodes, constraintGamemodes, Perk } from "../constants";
-
-// import Draggable from "react-draggable";
+import React, { useEffect } from "react";
+import { colorGamemodes, constraintGamemodes, perks } from "../../constants";
+import LightningsLayer from "../components/lightnings";
+import { BoardViewModel } from "../viewModels/boardViewModel";
 
 interface Props {
   viewModel: BoardViewModel;
@@ -54,6 +62,41 @@ interface Props {
 
 const BoardModel = observer(({ viewModel }: Props) => {
   const vm = viewModel;
+
+  useEffect(() => {
+    vm.populateBoard();
+
+    const timeIncrement = setInterval(() => {
+      if (vm.gameOver || !vm.movesMade) return;
+      runInAction(() => {
+        vm.timeElapsed++;
+        vm.constraintGamemode === "time" && vm.timeLeft--;
+      });
+    }, 1000);
+
+    const timer = setInterval(() => {
+      runInAction(() => {
+        if (vm.boardStabilized) return;
+
+        vm.checkForRowsOfFive(vm.currentPieces);
+        vm.checkForColumnsOfFive(vm.currentPieces);
+        vm.checkForCorners(vm.currentPieces);
+        vm.checkForTsAndPluses(vm.currentPieces);
+        vm.checkForRowsOfFour(vm.currentPieces);
+        vm.checkForColumnsOfFour(vm.currentPieces);
+        vm.checkForRowsOfThree(vm.currentPieces);
+        vm.checkForColumnsOfThree(vm.currentPieces);
+
+        vm.removeAllIndices();
+        vm.recursivelyDropColumn();
+      });
+    }, 250);
+
+    return () => {
+      clearInterval(timeIncrement);
+      clearInterval(timer);
+    };
+  }, []);
 
   return (
     <div className='App'>
@@ -67,6 +110,13 @@ const BoardModel = observer(({ viewModel }: Props) => {
         &gt;
       </button>
       {vm.menuIsOpen && <div className='overlay' onClick={vm.toggleMenu}></div>}
+      {!!vm.lightningsParams && (
+        <LightningsLayer
+          startPoint={vm.lightningsParams.startPoint}
+          endPoints={vm.lightningsParams.endPoints}
+          color={vm.lightningsParams.color}
+        />
+      )}
       <div
         className='controlPanel'
         style={vm.menuIsOpen ? { display: "flex", zIndex: 10, width: 300, transition: "all 0.2s", height: "90vh" } : undefined}>
@@ -127,6 +177,9 @@ const BoardModel = observer(({ viewModel }: Props) => {
           );
         })()}
 
+        <button onClick={() => vm.checkForPossibleMoves(vm.currentPieces)}>count moves</button>
+        <button onClick={() => vm.shuffleBoard()}>shuffle</button>
+
         {vm.movesMade ? (
           <>
             <span style={{ fontSize: 18 }}>{vm.time}</span>
@@ -158,10 +211,6 @@ const BoardModel = observer(({ viewModel }: Props) => {
                     </div>
                   </div>
                 </div>
-                {vm.movesLeft === 0 && vm.turn === 1 && <button onClick={() => vm.passMove("red")}>Передать ход красному</button>}
-                {vm.movesLeft === 0 && vm.turn === 2 && vm.roundNumber < 5 && (
-                  <button onClick={() => vm.passMove("blue")}>Передать ход синему</button>
-                )}
 
                 {vm.gameOver && <span style={{ color: vm.winner.color }}>{vm.winner.text}</span>}
               </div>
@@ -184,7 +233,12 @@ const BoardModel = observer(({ viewModel }: Props) => {
         className='board'
         // ref={board}
         onClick={(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
-          vm.debugMode && vm.explodeSpecials(parseInt((event.target as HTMLSpanElement).attributes["data-key"].value));
+          if (!vm.debugMode) return;
+          const index = parseInt((event.target as HTMLSpanElement).attributes["data-key"].value);
+          console.log(index);
+          // vm.testFn(index);
+          // vm.explodeSpecials(index);
+          // console.log(vm.getPiecesColor(index));
           // hammerMode && explodeSpecials([event.target.attributes["data-key"].value]) && setHammerMode(false);
           // debugMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
         }}

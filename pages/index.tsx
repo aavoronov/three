@@ -1,7 +1,5 @@
-"use client";
-
-import { BoardViewModel } from "../viewModels/board";
-import BoardModel from "../ui/boardModel";
+import { BoardViewModel } from "../src/viewModels/boardViewModel";
+import BoardModel from "../src/ui/boardModel";
 
 const Board = () => {
   const viewModel = new BoardViewModel();
