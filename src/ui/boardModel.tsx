@@ -1,19 +1,27 @@
-//TODO анимации
-//TODO экстра мувы
-//TODO сервер, доска рекордов ограниченных режимов
-//TODO ход из двух спецфишек
-//TODO бустеры
-//TODO больше абилок
-
+// // TODO анимации уточнить, какие именно
+//? экстра мувы
+//? сервер, доска рекордов ограниченных режимов
+//? бустеры
+//? больше абилок
 //done тики //? и так все на тиках. Откалибровать задержки?
 //done автоопределение конца хода: отслеживание отсутствия изменений
 //done расчет возможных ходов
 //TODO расчет возможных ходов со спецфишками и с образованием спецфишек
+//TODO ход из двух спецфишек
 //done перемешать доску без схлопываний
 //done перемешивание, если нет ходов
 //TODO бот-соперник
 //TODO свайп вместо перетаскивания
+//done индикация блокировки хода
+//fixed вычисление ходов перепроверить
 
+//fixed не создавать две спецфишки одновременно
+//! http://joxi.ru/D2Pp4aZT1plZZ2 такой ход заставит стрелку сработать первой,
+//!!! уничтожив среднюю фишку внизу, матч исчезнет. Аналогично для стрелки слева
+//! молнии уничтожают другие молнии, не активируя?
+//! ограничить рекурсию, которая проявляется неизвестно как?
+//! не уничтожать только что созданную спецфишку другой
+//done перк-молот
 //done эффект от молнии
 //fixed молния срабатывает несколько раз в цепочке спецфишек
 //? kinda done разобраться с гидратацией
@@ -46,12 +54,12 @@
 //DONE починить счет
 //DONE формат времени
 
-// import "./index.css";
 import { runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Head from "next/head";
 import Script from "next/script";
 import React, { useEffect } from "react";
+import { useSwipeable } from "react-swipeable";
 import { colorGamemodes, constraintGamemodes, perks } from "../../constants";
 import LightningsLayer from "../components/lightnings";
 import { BoardViewModel } from "../viewModels/boardViewModel";
@@ -62,6 +70,26 @@ interface Props {
 
 const BoardModel = observer(({ viewModel }: Props) => {
   const vm = viewModel;
+
+  const config = {
+    delta: 10, // min distance(px) before a swipe starts. *See Notes*
+    preventScrollOnSwipe: true, // prevents scroll during swipe (*See Details*)
+    trackTouch: true, // track touch input
+    trackMouse: true, // track mouse input
+    rotationAngle: 0, // set a rotation angle
+    swipeDuration: 250, // allowable duration of a swipe (ms). *See Notes*
+    touchEventOptions: { passive: true }, // options for touch listeners (*See Details*)
+  };
+  const handlers = useSwipeable({
+    onSwiped: (eventData) => {
+      vm.swipeEnd(eventData);
+    },
+
+    onTouchStartOrOnMouseDown: (eventData) => {
+      vm.swipeStart(eventData.event);
+    },
+    ...config,
+  });
 
   useEffect(() => {
     vm.populateBoard();
@@ -135,22 +163,15 @@ const BoardModel = observer(({ viewModel }: Props) => {
         <button onClick={vm.toggleFreeMode}>{!vm.freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}</button>
 
         {vm.constraintGamemode === constraintGamemodes.regular ? (
-          <button onClick={vm.enterLimitedMovesGamemode}>
-            {vm.constraintGamemode === constraintGamemodes.regular ? "Ограниченные ходы" : "Ограничения: обычный режим"}
-          </button>
+          <button onClick={vm.enterLimitedMovesGamemode}>Ограниченные ходы</button>
         ) : null}
 
         {vm.constraintGamemode === constraintGamemodes.regular ? (
-          <button onClick={vm.enterLimitedTimeGamemode}>
-            {vm.constraintGamemode === constraintGamemodes.regular ? "Ограниченное время" : "Ограничения: обычный режим"}
-          </button>
+          <button onClick={vm.enterLimitedTimeGamemode}>Ограниченное время</button>
         ) : null}
 
-        {vm.constraintGamemode === constraintGamemodes.regular ? (
-          <button onClick={vm.enterMultiplayer}>
-            {vm.constraintGamemode === constraintGamemodes.regular ? "Два игрока" : "Ограничения: обычный режим"}
-          </button>
-        ) : null}
+        {vm.constraintGamemode === constraintGamemodes.regular ? <button onClick={vm.enterMultiplayer}>Два игрока</button> : null}
+        {vm.constraintGamemode === constraintGamemodes.regular ? <button onClick={vm.enterBotMode}>Игра против бота</button> : null}
         {vm.constraintGamemode !== constraintGamemodes.regular ? (
           <button onClick={vm.enterRegularMode}>
             {vm.constraintGamemode === constraintGamemodes.multiplayer ? "Один игрок" : "Обычный режим"}
@@ -177,7 +198,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
           );
         })()}
 
-        <button onClick={() => vm.checkForPossibleMoves(vm.currentPieces)}>count moves</button>
+        <button onClick={() => vm.experimental_checkForPossibleMoves(vm.currentPieces)}>count moves</button>
         <button onClick={() => vm.shuffleBoard()}>shuffle</button>
 
         {vm.movesMade ? (
@@ -230,10 +251,12 @@ const BoardModel = observer(({ viewModel }: Props) => {
       </div>
 
       <div
-        className='board'
+        className={`board ${vm.hammerMode ? "hammerMode" : ""} ${!vm.boardStabilized ? "locked" : ""}`}
         // ref={board}
         onClick={(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+          vm.breakPieceInHammerMode(event);
           if (!vm.debugMode) return;
+
           const index = parseInt((event.target as HTMLSpanElement).attributes["data-key"].value);
           console.log(index);
           // vm.testFn(index);
@@ -243,13 +266,13 @@ const BoardModel = observer(({ viewModel }: Props) => {
           // debugMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
         }}
         style={{ gridTemplateColumns: `repeat(${vm.boardSize}, 1fr)`, height: vm.boardSize * 50, width: vm.boardSize * 50 }}>
+        {/* {!vm.boardStabilized ? " moveLocked" : ""} */}
         {vm.currentPieces.map((e, i) => (
           <span
             className={"piece " + e}
-            // data-value={differentValueMode ? classes.indexOf(e) + 1 : 1}
             key={i}
             data-key={i}
-            draggable={true}
+            draggable={vm.debugMode ? true : false}
             onDragOver={(e) => {
               e.preventDefault();
             }}
@@ -261,11 +284,9 @@ const BoardModel = observer(({ viewModel }: Props) => {
             }}
             onDrop={vm.dragDrop}
             onDragStart={vm.dragStart}
-            onDragEnd={vm.dragEnd}>
-            {/* <span className='index'>{i}</span> */}
-          </span>
+            onDragEnd={vm.dragEnd}
+            {...handlers}></span>
         ))}
-        {/* <PopulateBoard /> */}
       </div>
       <div className='rules'>
         <div className='moveRules'>

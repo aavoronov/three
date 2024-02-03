@@ -27,7 +27,13 @@ export const classesRegular = Object.values(_classesRegular);
 // const classesRegular = ["square", "diamond", "circle", "triangle", "pentagon", "star"] as const;
 export const classesSpecial = Object.values(_classesSpecial);
 export const colorGamemodes = Object.freeze({ regular: "regular", fiveColors: "fiveColors" });
-export const constraintGamemodes = Object.freeze({ regular: "regular", time: "time", multiplayer: "multiplayer", moves: "moves" });
+export const constraintGamemodes = Object.freeze({
+  regular: "regular",
+  time: "time",
+  multiplayer: "multiplayer",
+  moves: "moves",
+  bot: "bot",
+});
 export const perks = Object.freeze({ shuffle: "shuffle", bomb: "bomb", hammer: "hammer" });
 
 export type ClassRegular = (typeof classesRegular)[number];

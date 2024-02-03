@@ -42,9 +42,6 @@ const LightningsLayer = ({ startPoint, endPoints, color }: Props) => {
     };
   });
 
-  // const [width, height] = [coords2[0] - coords1[0], Math.abs(coords2[1] - coords1[1])];
-  // const lineLength = Math.sqrt(width ** 2 + height ** 2);
-
   const deviateFromStraightLine = (line: LineParams) => {
     const distortionValue = line.length * 0.05;
     return [randomIntFromInterval(-distortionValue, distortionValue), randomIntFromInterval(-distortionValue, distortionValue)];
@@ -53,7 +50,6 @@ const LightningsLayer = ({ startPoint, endPoints, color }: Props) => {
   const intermediatePointsNumber = 10;
 
   const getDistortedPoints = () => {
-    // let points: Point[][] = new Array(endPoints.length).fill([]);
     const points: Point[][] = endPoints.map((endPoint, index) => {
       const [firstPoint, secondPoint] = startPoint[0] < endPoint[0] ? [startPoint, endPoint] : [endPoint, startPoint];
       const step = (endPoint[0] - startPoint[0]) / intermediatePointsNumber;

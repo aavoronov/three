@@ -10,7 +10,10 @@ import {
   constraintGamemodes,
   perks,
   _colors,
+  ClassSpecial,
+  classesSpecial,
 } from "../../constants";
+import { SwipeDirections, SwipeEventData } from "react-swipeable";
 
 interface LightningsParams {
   color: (typeof _colors)[keyof typeof _colors];
@@ -70,6 +73,7 @@ export class BoardViewModel {
         if (!this.boardStabilized) return;
         if (!this.checkForPossibleMoves(this.currentPieces).size) {
           this.shuffleBoard();
+          // console.log("must shuffle");
         }
       }
     );
@@ -91,7 +95,6 @@ export class BoardViewModel {
   private arrowsVertical: Set<number> = new Set();
   private arrowsHorizontal: Set<number> = new Set();
   private bombs: Set<number> = new Set();
-
   private lightnings: Set<number> = new Set();
 
   boardSize: number = 8;
@@ -106,6 +109,8 @@ export class BoardViewModel {
   menuIsOpen: boolean = false;
   draggedPiece: number | null = null;
 
+  botDifficulty: 0 | 1 | 2 = 0;
+
   movesMade: number = 0;
   movesLeft: number = 20;
   timeElapsed: number = 0;
@@ -116,6 +121,7 @@ export class BoardViewModel {
   roundNumber: number = 1;
   perksUsedBlue: Perk[] = [];
   perksUsedRed: Perk[] = [];
+  hammerMode: boolean = false;
 
   lightningsParams: LightningsParams | null = null;
 
@@ -136,18 +142,48 @@ export class BoardViewModel {
     return this._classes;
   }
 
+  get botDifficultyModeText() {
+    let difficulty: string;
+    switch (this.botDifficulty) {
+      case 0:
+        difficulty = "низкая";
+        break;
+      case 1:
+        difficulty = "средняя";
+        break;
+      case 2:
+        difficulty = "высокая";
+    }
+    return `сложность: ${difficulty}`;
+  }
+
+  get constraintModeText() {
+    let text: string;
+    switch (this.constraintGamemode) {
+      case constraintGamemodes.moves:
+        text = ", ограниченные ходы";
+        break;
+      case constraintGamemodes.time:
+        text = ", ограниченное время";
+        break;
+      case constraintGamemodes.multiplayer:
+        text = ", два игрока";
+        break;
+      case constraintGamemodes.bot:
+        text = `, игра против бота, ${this.botDifficultyModeText}`;
+        break;
+      default:
+        text = "";
+    }
+    return text;
+  }
+
   get modeText() {
     return `Режим: ${
       this.colorGamemode === colorGamemodes.regular ? "обычный" : this.colorGamemode === colorGamemodes.fiveColors ? "пять цветов" : ""
-    }${this.debugMode ? ", отладка" : ""}${this.freeMode ? ", свободные ходы" : ""}${
-      this.constraintGamemode === constraintGamemodes.moves
-        ? ", ограниченные ходы"
-        : this.constraintGamemode === constraintGamemodes.time
-        ? ", ограниченное время"
-        : this.constraintGamemode === constraintGamemodes.multiplayer
-        ? ", два игрока"
-        : ""
-    }${this.differentValueMode ? ", разная ценность" : ""}
+    }${this.debugMode ? ", отладка" : ""}${this.freeMode ? ", свободные ходы" : ""}${this.constraintModeText}${
+      this.differentValueMode ? ", разная ценность" : ""
+    }
     `;
   }
 
@@ -260,7 +296,16 @@ export class BoardViewModel {
 
   private _enterMultiplayer() {
     if (this.maybePromptUser()) {
-      this.constraintGamemode = "multiplayer";
+      this.constraintGamemode = constraintGamemodes.multiplayer;
+      this.movesLeft = 3;
+
+      this.resetEverything();
+    }
+  }
+
+  private _enterBotMode() {
+    if (this.maybePromptUser()) {
+      this.constraintGamemode = constraintGamemodes.bot;
       this.movesLeft = 3;
 
       this.resetEverything();
@@ -316,43 +361,103 @@ export class BoardViewModel {
     this.perkAction(perk);
   }
 
+  private _breakPieceInHammerMode(e: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) {
+    if (!this.hammerMode) return;
+    this.resetBoardStateUpdate();
+    const index = parseInt((e.target as HTMLSpanElement).attributes["data-key"].value);
+    this.indices.add(index);
+    this.hammerMode = false;
+    if (this.turn === 1) {
+      this.perksUsedBlue.push(perks.hammer);
+    } else {
+      this.perksUsedRed.push(perks.hammer);
+    }
+  }
+
   private _dragStart(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) {
     if (!this.boardStabilized) return;
     if (this.gameOver || !this.movesLeft) return;
+    if (!this.debugMode) return;
 
     this.draggedPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
   }
 
   private _dragDrop(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) {
     const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
-    if (
-      (this.draggedPiece == targetPiece - 1 && this.draggedPiece % this.boardSize != this.boardSize - 1) ||
-      (this.draggedPiece! - 1 == targetPiece && this.draggedPiece! % this.boardSize != 0) ||
-      this.draggedPiece! - this.boardSize == targetPiece ||
-      this.draggedPiece == targetPiece - this.boardSize ||
-      this.debugMode
-    ) {
+
+    const isCorrectMove =
+      (this.draggedPiece === targetPiece - 1 && this.draggedPiece % this.boardSize !== this.boardSize - 1) ||
+      (this.draggedPiece === targetPiece + 1 && this.draggedPiece % this.boardSize !== 0) ||
+      this.draggedPiece === targetPiece + this.boardSize ||
+      this.draggedPiece === targetPiece - this.boardSize;
+
+    if (isCorrectMove || this.debugMode) {
       let piecesToCheck = [...this.currentPieces];
       let temp = this.currentPieces[this.draggedPiece!];
       piecesToCheck[this.draggedPiece!] = this.currentPieces[targetPiece];
       piecesToCheck[targetPiece] = temp;
-      if (
-        this.checkForColumnsOfFive(piecesToCheck) ||
-        this.checkForColumnsOfFour(piecesToCheck) ||
-        this.checkForColumnsOfThree(piecesToCheck) ||
-        this.checkForRowsOfFive(piecesToCheck) ||
-        this.checkForRowsOfFour(piecesToCheck) ||
-        this.checkForRowsOfThree(piecesToCheck) ||
-        this.freeMode ||
-        this.debugMode
-      )
+
+      //todo if ( this.doubleSpecialPieceMove()) {don't swap, just return?}
+      if (this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode || this.debugMode)
         this.swapPieces(this.draggedPiece!, targetPiece);
     }
   }
 
-  private _dragEnd = () => {
+  private _dragEnd() {
     this.draggedPiece = null;
-  };
+  }
+
+  private _swipeStart(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) {
+    if (!this.boardStabilized) return;
+    if (this.gameOver || !this.movesLeft) return;
+
+    this.draggedPiece = parseInt((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
+  }
+
+  private _swipeEnd(eventData: SwipeEventData) {
+    console.log("User Swiped!", eventData);
+
+    const direction: SwipeDirections = eventData.dir;
+
+    let targetPiece: number;
+    switch (direction) {
+      case "Up":
+        targetPiece = this.draggedPiece - this.boardSize;
+        break;
+      case "Right":
+        targetPiece = this.draggedPiece + 1;
+        break;
+      case "Down":
+        targetPiece = this.draggedPiece + this.boardSize;
+        break;
+      case "Left":
+        targetPiece = this.draggedPiece - 1;
+    }
+
+    console.log(this.draggedPiece, direction, targetPiece);
+
+    const isCorrectMoveWithinBounds =
+      (this.draggedPiece === targetPiece - 1 && this.draggedPiece % this.boardSize !== this.boardSize - 1) ||
+      (this.draggedPiece === targetPiece + 1 && this.draggedPiece % this.boardSize !== 0) ||
+      this.draggedPiece === targetPiece + this.boardSize ||
+      this.draggedPiece === targetPiece - this.boardSize;
+
+    const isWithinBounds = targetPiece >= 0 && targetPiece < this.boardSize * this.boardSize;
+
+    // const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
+    if (isCorrectMoveWithinBounds && isWithinBounds) {
+      let piecesToCheck = [...this.currentPieces];
+      let temp = this.currentPieces[this.draggedPiece!];
+      piecesToCheck[this.draggedPiece!] = this.currentPieces[targetPiece];
+      piecesToCheck[targetPiece] = temp;
+
+      //todo if ( this.doubleSpecialPieceMove()) {don't swap, just return?}
+      if (this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode)
+        this.swapPieces(this.draggedPiece!, targetPiece);
+    }
+
+    this.draggedPiece = null;
+  }
 
   maybePromptUser = this._maybePromptUser.bind(this);
   toggleMenu = this._toggleMenu.bind(this);
@@ -363,13 +468,17 @@ export class BoardViewModel {
   enterLimitedMovesGamemode = this._enterLimitedMovesGamemode.bind(this);
   enterLimitedTimeGamemode = this._enterLimitedTimeGamemode.bind(this);
   enterMultiplayer = this._enterMultiplayer.bind(this);
+  enterBotMode = this._enterBotMode.bind(this);
   enterRegularMode = this._enterRegularMode.bind(this);
   toggleDifferentValueMode = this._toggleDifferentValueMode.bind(this);
   toggledebugMode = this._toggledebugMode.bind(this);
   usePerk = this._usePerk.bind(this);
+  breakPieceInHammerMode = this._breakPieceInHammerMode.bind(this);
   dragStart = this._dragStart.bind(this);
   dragDrop = this._dragDrop.bind(this);
   dragEnd = this._dragEnd.bind(this);
+  swipeStart = this._swipeStart.bind(this);
+  swipeEnd = this._swipeEnd.bind(this);
 
   //#endregion
 
@@ -528,17 +637,416 @@ export class BoardViewModel {
           continue;
         }
 
-        if (change.direction === "upwards" || change.direction === "downwards") {
-          checkForRowsOfThree(virtualBoard, i, change);
-        }
-        if (change.direction === "left" || change.direction === "right") {
-          checkForColumnsOfThree(virtualBoard, i, change);
-        }
+        // if (change.direction === "upwards" || change.direction === "downwards") {
+        checkForRowsOfThree(virtualBoard, i, change);
+        // }
+        // if (change.direction === "left" || change.direction === "right") {
+        checkForColumnsOfThree(virtualBoard, i, change);
+        // }
       }
     }
 
     console.log(possibleMoves);
     return possibleMoves;
+  }
+
+  experimental_checkForPossibleMoves(board: string[]) {
+    const b = this.boardSize;
+    const possiblePositionChanges = [
+      { direction: "left", by: -1 },
+      { direction: "right", by: +1 },
+      { direction: "upwards", by: -b },
+      { direction: "downwards", by: +b },
+    ] as const;
+
+    const counterpartMoves = {
+      left: "right",
+      right: "left",
+      upwards: "downwards",
+      downwards: "upwards",
+    } as const;
+
+    type Change = (typeof possiblePositionChanges)[number];
+    type Direction = (typeof possiblePositionChanges)[number]["direction"];
+
+    const priority = {
+      highest: 10,
+      doubleSpecial: 9,
+      lightningExplosion: 8,
+      bombExplosion: 7,
+      arrowExplosion: b > 6 ? 6 : 2,
+      lightningCreation: 5,
+      bombCreation: 4,
+      arrowCreation: 3,
+      doubleMatch: b > 6 ? 2 : 6,
+      default: 1,
+    } as const;
+
+    interface Move {
+      key: string;
+      color: ClassRegular | "mixed";
+      direction: Direction;
+      index: number;
+      by: number;
+      value: number;
+      result: string;
+    }
+
+    class MovesCollection {
+      private _moves: Move[] = [];
+
+      private findMove(index: number, direction: Direction) {
+        return this._moves.find((item) => item.index === index && item.direction === direction);
+      }
+
+      private counterpartExists(move: Move): boolean {
+        const { index, direction } = move;
+
+        let to: number;
+        switch (direction) {
+          case "right":
+            to = index + 1;
+            break;
+          case "left":
+            to = index - 1;
+            break;
+          case "upwards":
+            to = index - b;
+            break;
+          case "downwards":
+            to = index + b;
+            break;
+        }
+
+        if (this.findMove(to, counterpartMoves[direction])) return true;
+
+        return false;
+      }
+
+      add(move: Move) {
+        if (this.counterpartExists(move)) {
+          return;
+        }
+        this._moves.push(move);
+      }
+
+      private deduplicate() {
+        const findDuplicates = <T>(array: T[]) => array.filter((item, index, self) => self.indexOf(item) !== index);
+
+        const combineOrPruneDuplicates = (key: string) => {
+          const getColorsForAMove = (key: string) => {
+            return new Set<string>(this._moves.filter((move) => move.key === key).map((move) => move.color));
+          };
+
+          const getIndicesForAMove = (key: string) => {
+            debugger;
+            return this._moves.flatMap((move, i) => (move.key === key ? i : []));
+          };
+
+          const combineTwoMovesIntoOne = (move1: Move, move2: Move): Move => {
+            let value: number;
+
+            if (move1.value > priority.doubleSpecial || move2.value > priority.doubleSpecial) {
+              value = priority.highest;
+            } else if (move1.value >= priority.arrowExplosion && move2.value >= priority.arrowExplosion) {
+              value = priority.doubleSpecial;
+            } else if (move1.value >= priority.arrowCreation || move2.value >= priority.arrowCreation) {
+              value = Math.max(move1.value, move2.value);
+            } else value = priority.doubleMatch;
+
+            return {
+              by: move1.by,
+              color: "mixed",
+              direction: move1.direction,
+              index: move1.index,
+              key: move1.key,
+              result: move1.result + ", " + move2.result,
+              value,
+            };
+          };
+
+          const colors = Array.from(getColorsForAMove(key));
+          const indices = getIndicesForAMove(key);
+
+          const bestMoves = colors.map(
+            (color) => this._moves.filter((move) => move.key === key && move.color === color).toSorted((a, b) => b.value - a.value)[0]
+          );
+
+          const singleBestMove = bestMoves.length === 1 ? bestMoves[0] : combineTwoMovesIntoOne(...(bestMoves as [Move, Move]));
+
+          this._moves.splice(indices[0], indices.length, singleBestMove);
+
+          console.log(indices, bestMoves);
+        };
+
+        const keys = this._moves.map((item) => item.key);
+        const duplicateElements = new Set(findDuplicates(keys));
+
+        Array.from(duplicateElements).forEach(combineOrPruneDuplicates);
+      }
+
+      get moves() {
+        this.deduplicate();
+        return this._moves;
+      }
+    }
+
+    let possibleMoves: MovesCollection = new MovesCollection();
+
+    const virtuallySwapPieces = (virtualBoard: string[], index: number, index2: number) => {
+      let temp = virtualBoard[index];
+      virtualBoard[index] = virtualBoard[index2];
+      virtualBoard[index2] = temp;
+    };
+
+    const formAMove = (
+      index: number,
+      change: Change,
+      currentType: ClassRegular,
+      move: number[],
+      fallbackValue: number
+    ): Omit<Move, "result" | "specials"> => {
+      const specials = move.filter((i) => board[i].includes("arrow") || board[i].includes("bomb") || board[i].includes("lightning"));
+      let value = fallbackValue;
+      console.log(move);
+      if (specials.length > 3) {
+        value = priority.highest;
+      } else if (specials.length === 2) {
+        value = priority.doubleSpecial;
+      } else if (specials.length) {
+        if (board[specials[0]].includes("arrow")) value = priority.arrowExplosion;
+        if (board[specials[0]].includes("bomb")) value = priority.bombExplosion;
+        if (board[specials[0]].includes("lightning")) value = priority.lightningExplosion;
+      }
+
+      return {
+        key: `${index}:${change.direction}`,
+        color: currentType,
+        index: index,
+        direction: change.direction,
+        by: change.by,
+        value,
+      };
+    };
+
+    const calculateCellsToCheckForMatch = (direction: Direction, i: number) => {
+      if (direction === "left" || direction === "right") {
+        const [left, right] = direction === "left" ? [i - 1, i] : [i, i + 1];
+
+        const checkFirst = [left - 2 * b, right - 2 * b];
+        const checkSecond = [left - b, right - b];
+        const checkLast = [left, left - 1, left - 2, left + b, left + 2 * b, right, right + 1, right + 2, right + b, right + 2 * b];
+
+        return [...checkFirst, ...checkSecond, ...checkLast].filter((item) => item >= 0 && item < b * b);
+      }
+
+      if (direction === "upwards" || direction === "downwards") {
+        const [upper, lower] = direction === "upwards" ? [i - b, i] : [i, i + b];
+
+        const checkFirst = [upper - 2, lower - 2];
+        const checkSecond = [upper - 1, lower - 1];
+        const checkLast = [upper, upper - b, upper - 2 * b, upper + 1, upper + 2, lower, lower + b, lower + 2 * b, lower + 1, lower + 2];
+
+        return [...checkFirst, ...checkSecond, ...checkLast].filter((item) => item >= 0 && item < b * b);
+      }
+    };
+
+    const checkForCorners = (virtualBoard: string[], index: number, change: Change) => {
+      const toCheck = calculateCellsToCheckForMatch(change.direction, index);
+      for (const i of toCheck) {
+        if (i % b === b - 2) {
+          continue;
+        }
+        const upperLeft = [i, i + 1, i + 2, i + b, i + 2 * b];
+        const lowerLeft = [i, i + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
+        const upperRight = [i, i + 1, i + 2, i + 2 + b, i + 2 + 2 * b];
+        const lowerRight = [i, i + 1, i + 2, i + 2 - b, i + 2 - 2 * b];
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+
+        if (currentType) {
+          if (upperLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, upperLeft, priority.bombCreation),
+              result: `${i}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (lowerLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, lowerLeft, priority.bombCreation),
+              result: `${i + 2 * b}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (upperRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, upperRight, priority.bombCreation),
+              result: `${i + 2}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (lowerRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, lowerRight, priority.bombCreation),
+              result: `${i + 2}: bomb of ${currentType}`,
+            });
+            return;
+          }
+        }
+      }
+    };
+
+    const checkForTs = (virtualBoard: string[], index: number, change: Change) => {
+      const b = this.boardSize;
+      const toCheck = calculateCellsToCheckForMatch(change.direction, index);
+      for (const i of toCheck) {
+        if (i % b === b - 2) {
+          continue;
+        }
+        const upper = [i, i + 1, i + 2, i + 1 + b, i + 1 + 2 * b];
+        const left = [i, i + b, i + 2 * b, i + b + 1, i + b + 2];
+        const lower = [i, i + 1, i + 2, i + 1 - b, i + 1 - 2 * b];
+        const right = [i, i + 1, i + 2, i + 2 - b, i + 2 + b];
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+
+        if (currentType) {
+          if (upper.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, upper, priority.bombCreation),
+              result: `${i + 1}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (left.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, left, priority.bombCreation),
+              result: `${i + b}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (lower.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, lower, priority.bombCreation),
+              result: `${i + 1}: bomb of ${currentType}`,
+            });
+            return;
+          }
+          if (right.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, right, priority.bombCreation),
+              result: `${i + 2}: bomb of ${currentType}`,
+            });
+            return;
+          }
+        }
+      }
+    };
+
+    const checkForRows = (virtualBoard: string[], index: number, change: Change) => {
+      const toCheck = calculateCellsToCheckForMatch(change.direction, index);
+      for (const i of toCheck) {
+        const rowOfThree = [i, i + 1, i + 2];
+        const rowOfFour = [...rowOfThree, i + 3];
+        const rowOfFive = [...rowOfFour, i + 4];
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+
+        if (currentType) {
+          if (
+            rowOfFive.every((piece) => i % b <= (i + 4) % b && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)
+          ) {
+            possibleMoves.add({
+              result: `${i}: row of five of ${currentType}`,
+              ...formAMove(index, change, currentType, rowOfFive, priority.lightningCreation),
+            });
+            // break;
+          }
+          if (
+            rowOfFour.every((piece) => i % b <= (i + 3) % b && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)
+          ) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, rowOfFour, priority.arrowCreation),
+              result: `${i}: row of four of ${currentType}`,
+            });
+            // break;
+          }
+          if (
+            rowOfThree.every(
+              (piece) => i % b <= (i + 2) % b && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType
+            )
+          ) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, rowOfThree, priority.default),
+              result: `${i}: row of three of ${currentType}`,
+            });
+          }
+        }
+      }
+    };
+
+    const checkForColumns = (virtualBoard: string[], index: number, change: Change) => {
+      const toCheck = calculateCellsToCheckForMatch(change.direction, index);
+      for (const i of toCheck) {
+        const columnOfThree = [i, i + b, i + 2 * b];
+        const columnOfFour = [...columnOfThree, i + 3 * b];
+        const columnOfFive = [...columnOfFour, i + 4 * b];
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+
+        if (currentType) {
+          if (
+            columnOfFive.every(
+              (piece) => virtualBoard[piece] && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType
+            )
+          ) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, columnOfFive, priority.lightningCreation),
+              result: `${i}: column of five of ${currentType}`,
+            });
+            // break;
+          }
+          if (
+            columnOfFour.every(
+              (piece) => virtualBoard[piece] && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType
+            )
+          ) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, columnOfFour, priority.arrowCreation),
+              result: `${i}: column of four of ${currentType}`,
+            });
+            // break;
+          }
+          if (
+            columnOfThree.every(
+              (piece) => virtualBoard[piece] && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType
+            )
+          ) {
+            possibleMoves.add({
+              ...formAMove(index, change, currentType, columnOfThree, priority.default),
+              result: `${i}: column of three of ${currentType}`,
+            });
+          }
+        }
+      }
+    };
+
+    for (let i = 0; i < this.boardSize * this.boardSize; i++) {
+      for (const change of possiblePositionChanges) {
+        const virtualBoard = [...board];
+
+        virtuallySwapPieces(virtualBoard, i, i + change.by);
+        if (i + change.by < 0 || i + change.by >= this.boardSize * this.boardSize) continue;
+        if ((i % b === b - 1 && (i + change.by) % b === 0) || (i % b === 0 && (i + change.by) % b === b - 1)) {
+          continue;
+        }
+
+        checkForCorners(virtualBoard, i, change);
+        checkForTs(virtualBoard, i, change);
+        checkForRows(virtualBoard, i, change);
+        checkForColumns(virtualBoard, i, change);
+      }
+    }
+
+    console.log(possibleMoves.moves);
+    return possibleMoves.moves;
   }
 
   shuffleBoard() {
@@ -645,6 +1153,91 @@ export class BoardViewModel {
     }
   }
 
+  doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
+    type SpecialType = typeof _classesSpecial.bomb | typeof _classesSpecial.lightning | "arrow";
+    type MaybeSpecialsPair = [SpecialType | false, SpecialType | false];
+    type SpecialsPair = [SpecialType, SpecialType];
+
+    const getSpecialType = (index: number) => {
+      const piece = this.currentPieces[index];
+      for (const type of classesSpecial) {
+        if (piece.includes(type)) {
+          if (type === _classesSpecial.arrowHorizontal || type === _classesSpecial.arrowVertical) {
+            return "arrow";
+          }
+        }
+      }
+
+      return false;
+    };
+
+    const maybePair: MaybeSpecialsPair = [getSpecialType(draggedPiece), getSpecialType(targetPiece)];
+
+    if (maybePair.some((item) => !item)) return;
+
+    const pair: SpecialsPair = (maybePair as SpecialsPair).sort();
+
+    const arrowRegex = /arrow(.*)/;
+    const pairTypeActions = {
+      doubleArrow: () => {
+        this.currentPieces[draggedPiece].replace(arrowRegex, "");
+
+        this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
+        //arrowBoth
+
+        // this.currentPieces[targetPiece].includes(_classesSpecial.arrowHorizontal)
+        //   ? (this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + " arrowVertical")
+        //   : (this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + " arrowHorizontal");
+      },
+      arrowBomb: () => {
+        this.currentPieces[draggedPiece].replace(arrowRegex, "");
+        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
+
+        this.currentPieces[targetPiece].replace(arrowRegex, "");
+        this.currentPieces[targetPiece].replace(_classesSpecial.bomb, "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
+      },
+      arrowLightning: () => {
+        this.currentPieces[draggedPiece].replace(arrowRegex, "");
+        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
+
+        this.currentPieces[targetPiece].replace(arrowRegex, "");
+        this.currentPieces[targetPiece].replace(_classesSpecial.lightning, "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
+      },
+      doubleBomb: () => {
+        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
+
+        //indices.add(extra pieces around)
+      },
+      bombLightning: () => {
+        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
+        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
+
+        this.currentPieces[targetPiece].replace(_classesSpecial.bomb, "");
+        this.currentPieces[targetPiece].replace(_classesSpecial.lightning, "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
+      },
+      doubleLightning: () => {
+        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
+
+        //power = this._bombExplosionPower * 2
+      },
+    };
+
+    if (pair[0] === "arrow") {
+      if (pair[1] === "arrow") {
+        return pairTypeActions.doubleArrow;
+      } else if (pair[1] === _classesSpecial.bomb) {
+        return pairTypeActions.arrowBomb;
+      } else return pairTypeActions.arrowLightning;
+    } else if (pair[0] === _classesSpecial.bomb) {
+      if (pair[1] === _classesSpecial.bomb) {
+        return pairTypeActions.doubleBomb;
+      } else return pairTypeActions.bombLightning;
+    } else return pairTypeActions.doubleLightning;
+  }
+
   perkAction(type: Perk) {
     if (type === perks.shuffle) {
       this.currentPieces = this.unbiasedShuffle(this.currentPieces);
@@ -666,14 +1259,9 @@ export class BoardViewModel {
         }, 300);
       }
     } else if (type === perks.hammer) {
-      // setHammerMode(true);
+      this.hammerMode = true;
       // console.log("on");
-      alert("not implemented");
-      if (this.turn === 1) {
-        this.perksUsedBlue.push(perks.hammer);
-      } else {
-        this.perksUsedRed.push(perks.hammer);
-      }
+      // alert("not implemented");
     }
   }
 
@@ -867,12 +1455,18 @@ export class BoardViewModel {
       if (currentType) {
         if (upperLeft.every((piece) => currentPieces[piece] === currentType)) {
           console.log("upper left");
-          this.bombs.add(i);
+          upperLeft.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i);
           return true;
         }
         if (lowerLeft.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower left");
-          this.bombs.add(i + 2 * b);
+          lowerLeft.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 2 * b);
 
           return true;
         }
@@ -889,13 +1483,19 @@ export class BoardViewModel {
       if (currentType) {
         if (upperRight.every((piece) => currentPieces[piece] === currentType)) {
           console.log("upper right");
-          this.bombs.add(i + 2);
+          upperRight.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 2);
 
           return true;
         }
         if (lowerRight.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower right");
-          this.bombs.add(i + 2);
+          lowerRight.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 2);
 
           return true;
         }
@@ -918,27 +1518,42 @@ export class BoardViewModel {
       if (currentType) {
         if (upper.every((piece) => currentPieces[piece] === currentType)) {
           console.log("upper");
-          this.bombs.add(i + 1);
+          upper.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 1);
           return true;
         }
         if (left.every((piece) => currentPieces[piece] === currentType)) {
           console.log("left");
-          this.bombs.add(i + b);
+          left.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + b);
           return true;
         }
         if (lower.every((piece) => currentPieces[piece] === currentType)) {
           console.log("lower");
-          this.bombs.add(i + 1);
+          lower.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 1);
           return true;
         }
         if (right.every((piece) => currentPieces[piece] === currentType)) {
           console.log("right");
-          this.bombs.add(i + 2);
+          right.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 2);
           return true;
         }
         if (plus.every((piece) => currentPieces[piece] === currentType)) {
           console.log("plus");
-          this.bombs.add(i + 1);
+          plus.forEach((index) => {
+            this.indices.add(index);
+          });
+          !this.lightnings.size && this.bombs.add(i + 1);
 
           return true;
         }
@@ -981,7 +1596,7 @@ export class BoardViewModel {
           rowOfFour.forEach((index) => {
             this.indices.add(index);
           });
-          this.arrowsHorizontal.add(i);
+          !this.lightnings.size && !this.bombs.size && this.arrowsHorizontal.add(i);
           console.log(i + " row of four " + currentType);
           return true;
         }
@@ -1039,7 +1654,7 @@ export class BoardViewModel {
           column.forEach((index) => {
             this.indices.add(index);
           });
-          this.arrowsVertical.add(i);
+          !this.lightnings.size && !this.bombs.size && this.arrowsVertical.add(i);
           console.log(i + " column of four " + currentType);
           return true;
         }
@@ -1158,7 +1773,7 @@ export class BoardViewModel {
     //set new timeout
     this.boardResetTimeout = setTimeout(() => {
       //do stuff and clear timeout
-      this.boardStabilized = true;
+      runInAction(() => (this.boardStabilized = true));
       console.log("stabilized");
       clearTimeout(this.boardResetTimeout);
       this.boardResetTimeout = null;

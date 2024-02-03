@@ -111,6 +111,10 @@
   /* background-color: #fff; */
   display: grid;
   /* grid-template-columns: repeat(8, 1fr); */
+  transition: all 0.3s;
+  &.locked {
+    filter: grayscale(0.3);
+  }
 }
 
 .piece {
@@ -125,6 +129,10 @@
   background-position: 50%;
   cursor: grab;
   transition: all 0.1s;
+}
+
+.hammerMode .piece {
+  cursor: url("/hammerCursor.svg") 0 0, auto;
 }
 
 .shrink {
@@ -381,9 +389,9 @@ color: black;
 }
 .hammer {
   background-image: url("/hammer.png") !important;
-  background-position: -4px;
+  background-position: 5px;
   background-repeat: no-repeat;
-  background-size: 40px;
+  background-size: 25px;
 }
 
 @media screen and (max-width: 768px) {
