@@ -38,27 +38,29 @@
   display: flex;
   flex-direction: column;
   margin-right: 10px;
-}
-.moveRules .rule {
-  justify-content: space-between;
+
+  & .rule {
+    display: flex;
+    justify-content: space-between;
+    flex-direction: row;
+    align-items: center;
+    position: relative;
+  }
+
+  & .piece {
+    filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
+    margin: 0;
+    cursor: default;
+  }
 }
 
-.piece.rule {
-  filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
-  margin: 0;
-}
 .valueRules {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   column-gap: 5px;
   row-gap: 5px;
 }
-.rule {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  position: relative;
-}
+
 .openMenuBtn {
   width: 40px;
   height: 40px;
@@ -89,6 +91,10 @@
   flex-direction: column;
   align-items: center;
   z-index: 100;
+
+  button {
+    cursor: pointer;
+  }
 }
 
 .controlPanel button:not(.boardSizeBtn) {
@@ -129,6 +135,7 @@
   background-position: 50%;
   cursor: grab;
   transition: all 0.1s;
+  transform: scale(1);
 }
 
 .hammerMode .piece {
@@ -148,10 +155,13 @@
 }
 
 .diamond {
-  background: #8e44ad;
-  transform: rotate(45deg) !important;
-  width: 70%;
-  height: 70%;
+  // background: #8e44ad;
+  filter: brightness(0) saturate(100%) invert(32%) sepia(85%) saturate(783%) hue-rotate(247deg) brightness(88%) contrast(90%);
+  // transform: rotate(45deg);
+  background-image: url("/img/diamond.svg");
+  background-size: 45px;
+  width: 100%;
+  height: 100%;
   margin: auto;
 }
 
@@ -182,9 +192,9 @@ color: black;
   height: 100%;
   /* background: #e67e22; */
   filter: brightness(0) saturate(100%) invert(55%) sepia(87%) saturate(1542%) hue-rotate(349deg) brightness(96%) contrast(88%);
-  background-image: url("/img/triangle.svg");
+  background-image: url("/img/triangle2.svg");
   background-size: 45px;
-  /* transform: rotate(120deg); */
+  // transform: rotate(120deg);
 }
 
 .pentagon {
@@ -216,7 +226,7 @@ color: black;
 .arrowHorizontal {
   background-image: url("/img/arrowHorizontal.svg") !important;
   background: none;
-  transform: rotate(0deg) !important;
+  transform: rotate(0deg);
   background-repeat: no-repeat;
   background-size: 100%;
   background-position: 50%;
@@ -224,7 +234,7 @@ color: black;
 .arrowVertical {
   background-image: url("/img/arrowVertical.svg") !important;
   background: none;
-  transform: rotate(0deg) !important;
+  transform: rotate(0deg);
   background-repeat: no-repeat;
   background-size: 100%;
   background-position: 50%;
@@ -232,7 +242,7 @@ color: black;
 .bomb {
   background-image: url("/img/bomb.svg") !important;
   background: none;
-  transform: rotate(0deg) !important;
+  transform: rotate(0deg);
   background-repeat: no-repeat;
   background-size: 100%;
   background-position: 50%;
@@ -240,7 +250,7 @@ color: black;
 .lightning {
   background-image: url("/img/lightning.svg") !important;
   background: none;
-  transform: rotate(0deg) !important;
+  transform: rotate(0deg);
   background-repeat: no-repeat;
   background-size: 100%;
   background-position: 50%;
@@ -252,12 +262,12 @@ color: black;
   filter: brightness(0) saturate(100%) invert(35%) sepia(80%) saturate(1235%) hue-rotate(335deg) brightness(94%) contrast(92%);
 }
 
-.diamond.arrowHorizontal,
-.diamond.arrowVertical,
-.diamond.bomb,
-.diamond.lightning {
-  filter: brightness(0) saturate(100%) invert(33%) sepia(14%) saturate(4964%) hue-rotate(251deg) brightness(94%) contrast(87%);
-}
+// .diamond.arrowHorizontal,
+// .diamond.arrowVertical,
+// .diamond.bomb,
+// .diamond.lightning {
+//   filter: brightness(0) saturate(100%) invert(33%) sepia(14%) saturate(4964%) hue-rotate(251deg) brightness(94%) contrast(87%);
+// }
 
 .circle.arrowHorizontal,
 .circle.arrowVertical,
@@ -306,6 +316,10 @@ color: black;
   align-items: center;
   width: 400px;
   margin-left: 350px;
+
+  button {
+    cursor: pointer;
+  }
 }
 .gamemode {
   text-align: center;
@@ -452,5 +466,11 @@ color: black;
   .controlPanel {
     width: 0;
     display: none;
+  }
+}
+
+.bot-difficulty {
+  .active {
+    background-color: #3498db !important;
   }
 }

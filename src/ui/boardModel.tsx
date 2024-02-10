@@ -11,10 +11,10 @@
 //done перемешать доску без схлопываний
 //done перемешивание, если нет ходов
 //TODO бот-соперник
-//TODO свайп вместо перетаскивания
+//done свайп вместо перетаскивания
+//done анимация свайпа
 //done индикация блокировки хода
 //fixed вычисление ходов перепроверить
-
 //fixed не создавать две спецфишки одновременно
 //! http://joxi.ru/D2Pp4aZT1plZZ2 такой ход заставит стрелку сработать первой,
 //!!! уничтожив среднюю фишку внизу, матч исчезнет. Аналогично для стрелки слева
@@ -58,29 +58,38 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Head from "next/head";
 import Script from "next/script";
-import React, { useEffect } from "react";
-import { useSwipeable } from "react-swipeable";
+import React, { useEffect, useRef } from "react";
+import { SwipeDirections, useSwipeable } from "react-swipeable";
 import { colorGamemodes, constraintGamemodes, perks } from "../../constants";
 import LightningsLayer from "../components/lightnings";
 import { BoardViewModel } from "../viewModels/boardViewModel";
+import { RivalBot } from "../bot/rivalBot";
 
 interface Props {
   viewModel: BoardViewModel;
 }
 
+const swipeConfig = {
+  delta: 10, // min distance(px) before a swipe starts. *See Notes*
+  preventScrollOnSwipe: true, // prevents scroll during swipe (*See Details*)
+  trackTouch: true, // track touch input
+  trackMouse: true, // track mouse input
+  rotationAngle: 0, // set a rotation angle
+  swipeDuration: 250, // allowable duration of a swipe (ms). *See Notes*
+  touchEventOptions: { passive: true }, // options for touch listeners (*See Details*)
+};
+
 const BoardModel = observer(({ viewModel }: Props) => {
   const vm = viewModel;
 
-  const config = {
-    delta: 10, // min distance(px) before a swipe starts. *See Notes*
-    preventScrollOnSwipe: true, // prevents scroll during swipe (*See Details*)
-    trackTouch: true, // track touch input
-    trackMouse: true, // track mouse input
-    rotationAngle: 0, // set a rotation angle
-    swipeDuration: 250, // allowable duration of a swipe (ms). *See Notes*
-    touchEventOptions: { passive: true }, // options for touch listeners (*See Details*)
-  };
-  const handlers = useSwipeable({
+  const bot = useRef<RivalBot>();
+
+  useEffect(() => {
+    bot.current = RivalBot.getInstance(viewModel);
+  }, []);
+  // const bot = RivalBot.getInstance(viewModel);
+
+  const swipeHandlers = useSwipeable({
     onSwiped: (eventData) => {
       vm.swipeEnd(eventData);
     },
@@ -88,7 +97,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
     onTouchStartOrOnMouseDown: (eventData) => {
       vm.swipeStart(eventData.event);
     },
-    ...config,
+    ...swipeConfig,
   });
 
   useEffect(() => {
@@ -178,6 +187,21 @@ const BoardModel = observer(({ viewModel }: Props) => {
           </button>
         ) : null}
 
+        {vm.constraintGamemode === constraintGamemodes.bot && (
+          <div className='bot-difficulty'>
+            <span>Сложность бота</span>
+            <button className={vm.botDifficulty === 0 ? "active" : ""} onClick={() => (vm.botDifficulty = 0)}>
+              Легко
+            </button>
+            <button className={vm.botDifficulty === 1 ? "active" : ""} onClick={() => (vm.botDifficulty = 1)}>
+              Средне
+            </button>
+            <button className={vm.botDifficulty === 2 ? "active" : ""} onClick={() => (vm.botDifficulty = 2)}>
+              Сложно
+            </button>
+          </div>
+        )}
+
         <button onClick={vm.toggleDifferentValueMode}>
           {!vm.differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
         </button>
@@ -198,15 +222,17 @@ const BoardModel = observer(({ viewModel }: Props) => {
           );
         })()}
 
-        <button onClick={() => vm.experimental_checkForPossibleMoves(vm.currentPieces)}>count moves</button>
-        <button onClick={() => vm.shuffleBoard()}>shuffle</button>
+        {/* <button onClick={() => vm.shuffleBoard()}>shuffle</button>
+        <button onClick={() => console.log(bot.current)}>test</button> */}
 
         {vm.movesMade ? (
           <>
             <span style={{ fontSize: 18 }}>{vm.time}</span>
 
-            {vm.constraintGamemode !== constraintGamemodes.multiplayer && <span>{vm.singleplayerScore}</span>}
-            {vm.constraintGamemode === constraintGamemodes.multiplayer ? (
+            {vm.constraintGamemode !== constraintGamemodes.multiplayer && vm.constraintGamemode !== constraintGamemodes.bot && (
+              <span>{vm.singleplayerScore}</span>
+            )}
+            {vm.constraintGamemode === constraintGamemodes.multiplayer || vm.constraintGamemode === constraintGamemodes.bot ? (
               <div className='twoPlayerStatsWrap'>
                 <div className='twoPlayersStats'>
                   <div className='playerWrap'>
@@ -285,7 +311,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
             onDrop={vm.dragDrop}
             onDragStart={vm.dragStart}
             onDragEnd={vm.dragEnd}
-            {...handlers}></span>
+            {...swipeHandlers}></span>
         ))}
       </div>
       <div className='rules'>
@@ -293,17 +319,17 @@ const BoardModel = observer(({ viewModel }: Props) => {
           <div className='rule'>
             <div className='arrowRule' style={{ marginRight: 10 }}></div>
             <span style={{ color: "white" }}>=</span>
-            <span className='piece arrowHorizontal rule' style={{ width: 40, height: 40 }}></span>
+            <span className='piece arrowHorizontal' style={{ width: 40, height: 40 }}></span>
           </div>
           <div className='rule'>
             <div className='bombRule' style={{ marginRight: 10 }}></div>
             <span style={{ color: "white" }}>=</span>
-            <span className='piece bomb rule' style={{ width: 40, height: 40 }}></span>
+            <span className='piece bomb' style={{ width: 40, height: 40 }}></span>
           </div>
           <div className='rule'>
             <div className='lightningRule' style={{ marginRight: 10 }}></div>
             <span style={{ color: "white" }}>=</span>
-            <span className='piece lightning rule' style={{ width: 40, height: 40 }}></span>
+            <span className='piece lightning' style={{ width: 40, height: 40 }}></span>
           </div>
         </div>
 
