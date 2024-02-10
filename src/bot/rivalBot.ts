@@ -187,7 +187,7 @@ export class RivalBot {
             (color) => this._moves.filter((move) => move.key === key && move.color === color).toSorted((a, b) => b.value - a.value)[0]
           );
 
-          const singleBestMove = bestMoves.length === 1 ? bestMoves[0] : combineTwoMovesIntoOne(...(bestMoves as [Move, Move]));
+          const singleBestMove = bestMoves.length === 1 ? bestMoves[0] : combineTwoMovesIntoOne(bestMoves[0], bestMoves[1]);
 
           this._moves.splice(indices[0], indices.length, singleBestMove);
         };
