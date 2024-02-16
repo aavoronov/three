@@ -14,6 +14,7 @@ import {
   classesSpecial,
 } from "../../constants";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
+import { HandledEvents } from "react-swipeable/es/types";
 
 interface LightningsParams {
   color: (typeof _colors)[keyof typeof _colors];
@@ -427,13 +428,15 @@ export class BoardViewModel {
     this.draggedPiece = null;
   };
 
-  public swipeStart = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  public swipeStart = (event: HandledEvents) => {
     if (!this.boardStabilized) return;
     if (this.gameOver || !this.movesLeft) return;
     if (this.constraintGamemode === constraintGamemodes.bot && this.turn === 2) return;
 
     this.draggedPiece = parseInt((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
   };
+
+  // public swipeStart = this._swipeStart.bind(this);
 
   public swipeEnd = (eventData: SwipeEventData) => {
     // console.log("User Swiped!", eventData);
@@ -518,7 +521,7 @@ export class BoardViewModel {
 
   //#endregion
 
-  //#region actions
+  //#region methods
 
   calculatePerksClassNames(perk: Perk, color: 1 | 2) {
     //maybe later: || this.perksUsedBlue.length === 3

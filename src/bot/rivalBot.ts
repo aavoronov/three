@@ -59,7 +59,6 @@ export class RivalBot {
   private readonly rollThresholds = [100, 300, 500];
   private readonly perkUseProbabilities = [0.1, 0.5, 0.9];
   private readonly perksAvailable = [perks.bomb, perks.shuffle];
-  private perksUsed = this.vm.perksUsedRed;
 
   private readonly minMoveDelay = 1000;
   private readonly maxMoveDelay = 3000;
@@ -75,11 +74,11 @@ export class RivalBot {
 
   //#region methods
 
-  getMoveDelay() {
+  private getMoveDelay() {
     return Math.floor(Math.random() * (this.maxMoveDelay - this.minMoveDelay) + this.minMoveDelay);
   }
 
-  checkForPossibleMoves(board: string[]) {
+  private checkForPossibleMoves(board: string[]) {
     const b = this.vm.boardSize;
     const possiblePositionChanges = [
       { direction: "left", by: -1 },
@@ -464,7 +463,7 @@ export class RivalBot {
     return possibleMoves.moves;
   }
 
-  rangePossibleMoves(moves: Move[]) {
+  private rangePossibleMoves(moves: Move[]) {
     const range: Record<string, number> = {};
 
     for (const move of moves) {
@@ -475,7 +474,7 @@ export class RivalBot {
     return range;
   }
 
-  rollForMoveValue(range: Record<string, number>) {
+  private rollForMoveValue(range: Record<string, number>) {
     const values = Object.keys(range)
       .map(Number)
       .sort((a, b) => b - a);
@@ -489,17 +488,17 @@ export class RivalBot {
     }
   }
 
-  getRandomMoveOfGivenValue(moves: Move[], value: number) {
+  private getRandomMoveOfGivenValue(moves: Move[], value: number) {
     const movesOfGivenValue = moves.filter((move) => move.value === value);
 
     return movesOfGivenValue[Math.floor(Math.random() * movesOfGivenValue.length)];
   }
 
-  commitMove(move: Move) {
+  private commitMove(move: Move) {
     this.vm.swapPieces(move.index, move.index + move.by);
   }
 
-  usePerkInstead() {
+  private usePerkInstead() {
     console.log(this.vm.perksUsedRed.length, this.perksAvailable.length);
     if (this.vm.perksUsedRed.length === this.perksAvailable.length) return;
 
