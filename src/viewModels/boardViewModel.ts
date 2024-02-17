@@ -420,8 +420,6 @@ export class BoardViewModel {
       piecesToCheck[this.draggedPiece!] = this.currentPieces[targetPiece];
       piecesToCheck[targetPiece] = temp;
 
-      //todo if ( this.doubleSpecialPieceMove()) {don't swap, just return?}
-
       if (this.doubleSpecialPieceMove(this.draggedPiece, parseInt(targetPiece))) return;
 
       if (this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode || this.debugMode)
@@ -513,7 +511,8 @@ export class BoardViewModel {
       piecesToCheck[this.draggedPiece!] = this.currentPieces[targetPiece];
       piecesToCheck[targetPiece] = temp;
 
-      //todo if ( this.doubleSpecialPieceMove()) {don't swap, just return?}
+      if (this.doubleSpecialPieceMove(this.draggedPiece, targetPiece)) return;
+
       if (!(this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode)) {
         swapPiecesBackAndForth(this.draggedPiece!, targetPiece, direction);
         return;
