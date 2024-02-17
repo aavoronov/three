@@ -39,14 +39,6 @@
   flex-direction: column;
   margin-right: 10px;
 
-  & .rule {
-    display: flex;
-    justify-content: space-between;
-    flex-direction: row;
-    align-items: center;
-    position: relative;
-  }
-
   & .piece {
     filter: brightness(0) saturate(100%) invert(100%) sepia(0%) saturate(0%) hue-rotate(93deg) brightness(103%) contrast(103%);
     margin: 0;
@@ -59,6 +51,14 @@
   grid-template-columns: repeat(3, 1fr);
   column-gap: 5px;
   row-gap: 5px;
+}
+
+.rule {
+  display: flex;
+  justify-content: space-between;
+  flex-direction: row;
+  align-items: center;
+  position: relative;
 }
 
 .openMenuBtn {

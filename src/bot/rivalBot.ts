@@ -1,4 +1,4 @@
-import { reaction } from "mobx";
+import { reaction, runInAction } from "mobx";
 import { ClassRegular, constraintGamemodes, perks } from "../../constants";
 import { BoardViewModel } from "../viewModels/boardViewModel";
 
@@ -57,7 +57,7 @@ export class RivalBot {
   //#region props
 
   private readonly rollThresholds = [100, 300, 500];
-  private readonly perkUseProbabilities = [0.1, 0.5, 0.9];
+  private readonly perkUseProbabilities = [0.05, 0.1, 0.15];
   private readonly perksAvailable = [perks.bomb, perks.shuffle];
 
   private readonly minMoveDelay = 1000;
@@ -499,11 +499,7 @@ export class RivalBot {
   }
 
   private usePerkInstead() {
-    console.log(this.vm.perksUsedRed.length, this.perksAvailable.length);
-    if (this.vm.perksUsedRed.length === this.perksAvailable.length) return;
-
     const usePerk = (perk: (typeof this.perksAvailable)[number]) => {
-      console.log("perk being used");
       this.vm.usePerk(perk, "red");
     };
     let perk: (typeof this.perksAvailable)[number];
@@ -521,51 +517,32 @@ export class RivalBot {
     usePerk(perk);
   }
 
-  // makeMove() {
-  //   const rollForPerkUse = Math.random();
-
-  //   const delay = this.getMoveDelay();
-  //   console.log(rollForPerkUse);
-  //   if (rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty]) {
-  //     console.log("perk used?");
-  //     new Promise<void>((res) => {
-  //       setTimeout(() => res(), delay);
-  //     }).then(() => {
-  //       this.usePerkInstead();
-  //       return;
-  //     });
-  //   } else {
-  //     const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
-  //     const range = this.rangePossibleMoves(possibleMoves);
-  //     const moveValue = this.rollForMoveValue(range);
-  //     const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
-
-  //     new Promise<void>((res) => {
-  //       setTimeout(() => res(), delay);
-  //     }).then(() => {
-  //       this.commitMove(move);
-  //       return;
-  //     });
-  //   }
-  // }
-
   makeMove() {
-    const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
-
-    const range = this.rangePossibleMoves(possibleMoves);
-
-    const moveValue = this.rollForMoveValue(range);
-
-    const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
+    const rollForPerkUse = Math.random();
 
     const delay = this.getMoveDelay();
 
-    new Promise<void>((res) => {
-      setTimeout(() => res(), delay);
-    }).then(() => {
-      this.commitMove(move);
-      return;
-    });
+    if (rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty] && this.vm.perksUsedRed.length < this.perksAvailable.length) {
+      new Promise<void>((res) => {
+        setTimeout(() => res(), delay);
+      }).then(() => {
+        runInAction(() => this.usePerkInstead());
+        return;
+      });
+    } else {
+      const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
+      const range = this.rangePossibleMoves(possibleMoves);
+      const moveValue = this.rollForMoveValue(range);
+      const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
+
+      new Promise<void>((res) => {
+        setTimeout(() => res(), delay);
+      }).then(() => {
+        this.commitMove(move);
+        return;
+      });
+    }
   }
+
   //#endregion
 }

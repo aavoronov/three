@@ -37,7 +37,7 @@ export class BoardViewModel {
     );
 
     reaction(
-      () => [this.timeLeft, this.movesLeft, this.turn],
+      () => [this.timeLeft, this.movesLeft, this.turn, this.boardStabilized],
       () => {
         if (
           (this.constraintGamemode === constraintGamemodes.time && this.timeLeft === 0) ||
@@ -45,7 +45,7 @@ export class BoardViewModel {
           ((this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
             this.movesLeft === 0 &&
             this.turn === 2 &&
-            this.roundNumber === 5 &&
+            this.roundNumber === this.roundsCount &&
             this.boardStabilized)
         ) {
           this.gameOver = true;
@@ -112,6 +112,7 @@ export class BoardViewModel {
   //#region props
 
   boardSize: number = 8;
+  roundsCount = 5;
   colorGamemode: ColorGamemode = colorGamemodes.regular;
   freeMode: boolean = false;
   constraintGamemode: ConstraintGamemode = constraintGamemodes.regular;
@@ -211,7 +212,7 @@ export class BoardViewModel {
   get multiplayerText() {
     return this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot
       ? {
-          startText: `Раунд ${this.roundNumber}/5. Очередь: `,
+          startText: `Раунд ${this.roundNumber}/${this.roundsCount}. Очередь: `,
           currentColor: this.turn === 1 ? { code: this._blueColor, name: "синий" } : { code: this._redColor, name: "красный" },
           endText: `Осталось ходов: ${this.movesLeft}.`,
         }
@@ -519,6 +520,11 @@ export class BoardViewModel {
     this.draggedPiece = null;
   };
 
+  public handleReplay = () => {
+    this.resetEverything();
+    this.classesInRandomOrder();
+  };
+
   //#endregion
 
   //#region methods
@@ -527,7 +533,7 @@ export class BoardViewModel {
     //maybe later: || this.perksUsedBlue.length === 3
 
     const colorModifier = color === 1 ? "blue" : "red";
-    const disabled = color !== this.turn ? "disabled" : "";
+    const disabled = color !== this.turn || (this.constraintGamemode === constraintGamemodes.bot && color === 2) ? "disabled" : "";
     const used = (color === 1 && this.perksUsedBlue.includes(perk)) || (color === 2 && this.perksUsedRed.includes(perk)) ? "used" : "";
 
     return `perk ${colorModifier} ${perk} ${used} ${disabled}`;
@@ -874,7 +880,6 @@ export class BoardViewModel {
   }
 
   perkAction(type: Perk) {
-    if (this.constraintGamemode === constraintGamemodes.bot && this.turn === 2) return;
     if (type === perks.shuffle) {
       this.currentPieces = this.unbiasedShuffle(this.currentPieces);
       if (this.turn === 1) {
@@ -887,11 +892,11 @@ export class BoardViewModel {
       this.bombExplode(b % 2 === 0 ? (b * b + b) / 2 : (b * b - 1) / 2);
       if (this.turn === 1) {
         setTimeout(() => {
-          this.perksUsedBlue.push(perks.bomb);
+          runInAction(() => this.perksUsedBlue.push(perks.bomb));
         }, 300);
       } else {
         setTimeout(() => {
-          this.perksUsedRed.push(perks.bomb);
+          runInAction(() => this.perksUsedRed.push(perks.bomb));
         }, 300);
       }
     } else if (type === perks.hammer) {
@@ -987,7 +992,7 @@ export class BoardViewModel {
         this.indices.add(item);
         item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       });
-      this.lightningsParams = null;
+      runInAction(() => (this.lightningsParams = null));
       // console.log(shuffledSlice);
     });
   }
@@ -1204,6 +1209,7 @@ export class BoardViewModel {
 
   checkForRowsOfFive(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * b - 4; i++) {
       if (i % b === b - 4) {
         i += 4;
@@ -1218,14 +1224,17 @@ export class BoardViewModel {
 
           this.lightnings.add(i);
           // console.log(i + " row of five " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   checkForRowsOfFour(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * b - 3; i++) {
       if (i % b === b - 3) {
         i += 3;
@@ -1239,14 +1248,17 @@ export class BoardViewModel {
           });
           !this.lightnings.size && !this.bombs.size && this.arrowsHorizontal.add(i);
           // console.log(i + " row of four " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   checkForRowsOfThree(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * b - 2; i++) {
       if (i % b === b - 2) {
         i += 2;
@@ -1259,14 +1271,17 @@ export class BoardViewModel {
             this.indices.add(index);
           });
           // console.log(i + " row of three " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   checkForColumnsOfFive(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 4); i++) {
       const column = [i, i + b, i + 2 * b, i + 3 * b, i + 4 * b];
       const currentType = currentPieces[i].split(" ")[0];
@@ -1278,14 +1293,17 @@ export class BoardViewModel {
           });
           this.lightnings.add(i);
           // console.log(i + " column of five " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   checkForColumnsOfFour(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 3); i++) {
       const column = [i, i + b, i + 2 * b, i + 3 * b];
       const currentType = currentPieces[i].split(" ")[0];
@@ -1297,14 +1315,17 @@ export class BoardViewModel {
           });
           !this.lightnings.size && !this.bombs.size && this.arrowsVertical.add(i);
           // console.log(i + " column of four " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   checkForColumnsOfThree(currentPieces: string[]) {
     const b = this.boardSize;
+    let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 2); i++) {
       const column = [i, i + b, i + 2 * b];
       const currentType = currentPieces[i].split(" ")[0];
@@ -1315,10 +1336,12 @@ export class BoardViewModel {
             this.indices.add(index);
           });
           // console.log(i + " column of three " + currentType);
-          return true;
+          matchesEncountered++;
+          if (matchesEncountered === 2) return true;
         }
       }
     }
+    return !!matchesEncountered;
   }
 
   autoPassMove() {
@@ -1327,7 +1350,7 @@ export class BoardViewModel {
     if (this.movesLeft !== 0 || this.gameOver) return;
 
     this.movesLeft = 3;
-    if (this.turn === 2 && this.roundNumber < 5) {
+    if (this.turn === 2 && this.roundNumber < this.roundsCount) {
       this.turn = 1;
       this.roundNumber++;
     } else if (this.turn === 1) {
