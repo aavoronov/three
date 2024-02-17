@@ -201,7 +201,7 @@ export class BoardViewModel {
 
   get modeText() {
     return `Режим: ${
-      this.colorGamemode === colorGamemodes.regular ? "обычный" : this.colorGamemode === colorGamemodes.fiveColors ? "пять цветов" : ""
+      this.colorGamemode === colorGamemodes.regular ? "шесть цветов" : this.colorGamemode === colorGamemodes.fiveColors ? "пять цветов" : ""
     }${this.debugMode ? ", отладка" : ""}${this.freeMode ? ", свободные ходы" : ""}${this.constraintModeText}${
       this.differentValueMode ? ", разная ценность" : ""
     }
@@ -914,8 +914,8 @@ export class BoardViewModel {
     }
 
     row.forEach((item) => {
+      item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       this.indices.add(item);
-      item !== index && this.explodeSpecials(item);
     });
   }
 
@@ -928,23 +928,28 @@ export class BoardViewModel {
     }
 
     column.forEach((item) => {
+      item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       this.indices.add(item);
-      item !== index && this.explodeSpecials(item);
     });
   }
 
   bombExplode(i: number) {
     const b = this.boardSize;
-    let pieces: (number | false)[][] = [];
+    let pieces: (number | false)[] = [];
 
-    pieces.push([i - 2 * b >= 0 && i - 2 * b]);
-    pieces.push([i - 1 - b >= 0 && i % b > 0 && i - 1 - b, i - b >= 0 && i - b, i + 1 - b >= 0 && i % b < b - 1 && i + 1 - b]);
-    pieces.push([i % b > 1 && i - 2, i % b > 0 && i - 1, i, i % b < b - 1 && i + 1, i % b < b - 2 && i + 2]);
-    pieces.push([i - 1 + b < b * b && i % b > 0 && i - 1 + b, i + b < b * b && i + b, i + 1 + b < b * b && i % b < b - 1 && i + 1 + b]);
-    pieces.push([i + 2 * b < b * b && i + 2 * b]);
+    //   x
+    //  xxx
+    // xxxxx
+    //  xxx
+    //   x
+
+    pieces.push(i - 2 * b >= 0 && i - 2 * b);
+    pieces.push(i - 1 - b >= 0 && i % b > 0 && i - 1 - b, i - b >= 0 && i - b, i + 1 - b >= 0 && i % b < b - 1 && i + 1 - b);
+    pieces.push(i % b > 1 && i - 2, i % b > 0 && i - 1, i, i % b < b - 1 && i + 1, i % b < b - 2 && i + 2);
+    pieces.push(i - 1 + b < b * b && i % b > 0 && i - 1 + b, i + b < b * b && i + b, i + 1 + b < b * b && i % b < b - 1 && i + 1 + b);
+    pieces.push(i + 2 * b < b * b && i + 2 * b);
 
     pieces
-      .flat()
       .filter((item): item is number => !!item)
       .forEach((item) => {
         item !== i && !this.indices.has(item) && this.explodeSpecials(item);
@@ -980,7 +985,7 @@ export class BoardViewModel {
     }).then(() => {
       shuffledSlice.forEach((item) => {
         this.indices.add(item);
-        item !== index && this.explodeSpecials(item);
+        item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       });
       this.lightningsParams = null;
       // console.log(shuffledSlice);
