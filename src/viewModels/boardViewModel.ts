@@ -15,6 +15,7 @@ import {
 } from "../../constants";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
 import { HandledEvents } from "react-swipeable/es/types";
+import { types } from "sass";
 
 interface LightningsParams {
   color: (typeof _colors)[keyof typeof _colors];
@@ -420,6 +421,9 @@ export class BoardViewModel {
       piecesToCheck[targetPiece] = temp;
 
       //todo if ( this.doubleSpecialPieceMove()) {don't swap, just return?}
+
+      if (this.doubleSpecialPieceMove(this.draggedPiece, parseInt(targetPiece))) return;
+
       if (this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode || this.debugMode)
         this.swapPieces(this.draggedPiece!, targetPiece);
     }
@@ -795,7 +799,7 @@ export class BoardViewModel {
   }
 
   doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
-    type SpecialType = typeof _classesSpecial.bomb | typeof _classesSpecial.lightning | "arrow";
+    type SpecialType = (typeof classesSpecial)[number];
     type MaybeSpecialsPair = [SpecialType | false, SpecialType | false];
     type SpecialsPair = [SpecialType, SpecialType];
 
@@ -803,80 +807,71 @@ export class BoardViewModel {
       const piece = this.currentPieces[index];
       for (const type of classesSpecial) {
         if (piece.includes(type)) {
-          if (type === _classesSpecial.arrowHorizontal || type === _classesSpecial.arrowVertical) {
-            return "arrow";
-          }
+          return type;
         }
       }
 
       return false;
     };
 
-    const maybePair: MaybeSpecialsPair = [getSpecialType(draggedPiece), getSpecialType(targetPiece)];
-
-    if (maybePair.some((item) => !item)) return;
-
-    const pair: SpecialsPair = (maybePair as SpecialsPair).sort();
-
-    const arrowRegex = /arrow(.*)/;
-    const pairTypeActions = {
-      doubleArrow: () => {
-        this.currentPieces[draggedPiece].replace(arrowRegex, "");
-
-        this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
-        //arrowBoth
-
-        // this.currentPieces[targetPiece].includes(_classesSpecial.arrowHorizontal)
-        //   ? (this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + " arrowVertical")
-        //   : (this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + " arrowHorizontal");
-      },
-      arrowBomb: () => {
-        this.currentPieces[draggedPiece].replace(arrowRegex, "");
-        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
-
-        this.currentPieces[targetPiece].replace(arrowRegex, "");
-        this.currentPieces[targetPiece].replace(_classesSpecial.bomb, "");
-        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
-      },
-      arrowLightning: () => {
-        this.currentPieces[draggedPiece].replace(arrowRegex, "");
-        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
-
-        this.currentPieces[targetPiece].replace(arrowRegex, "");
-        this.currentPieces[targetPiece].replace(_classesSpecial.lightning, "");
-        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
-      },
-      doubleBomb: () => {
-        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
-
-        //indices.add(extra pieces around)
-      },
-      bombLightning: () => {
-        this.currentPieces[draggedPiece].replace(_classesSpecial.bomb, "");
-        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
-
-        this.currentPieces[targetPiece].replace(_classesSpecial.bomb, "");
-        this.currentPieces[targetPiece].replace(_classesSpecial.lightning, "");
-        this.currentPieces[targetPiece] = this.currentPieces[targetPiece] + ` ${pair[0]} ${pair[1]}`;
-      },
-      doubleLightning: () => {
-        this.currentPieces[draggedPiece].replace(_classesSpecial.lightning, "");
-
-        //power = this._bombExplosionPower * 2
-      },
+    const equal = (a1: SpecialsPair, a2: SpecialsPair) => {
+      return a1[0] === a2[0] && a1[1] === a2[1];
     };
 
-    if (pair[0] === "arrow") {
-      if (pair[1] === "arrow") {
-        return pairTypeActions.doubleArrow;
-      } else if (pair[1] === _classesSpecial.bomb) {
-        return pairTypeActions.arrowBomb;
-      } else return pairTypeActions.arrowLightning;
-    } else if (pair[0] === _classesSpecial.bomb) {
-      if (pair[1] === _classesSpecial.bomb) {
-        return pairTypeActions.doubleBomb;
-      } else return pairTypeActions.bombLightning;
-    } else return pairTypeActions.doubleLightning;
+    const maybePair: MaybeSpecialsPair = [getSpecialType(draggedPiece), getSpecialType(targetPiece)];
+
+    if (maybePair.some((item) => !item)) return false;
+
+    const pair: SpecialsPair = maybePair as SpecialsPair;
+
+    const arrowRegex = /arrow(.*)/;
+    const pairTypeActions = (...pair: SpecialsPair) => {
+      if (
+        equal(pair, ["arrowHorizontal", "arrowHorizontal"]) ||
+        equal(pair, ["arrowHorizontal", "arrowVertical"]) ||
+        equal(pair, ["arrowVertical", "arrowHorizontal"]) ||
+        equal(pair, ["arrowVertical", "arrowVertical"])
+      ) {
+        console.log(this.currentPieces[draggedPiece], this.currentPieces[targetPiece]);
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(arrowRegex, "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
+
+        this.resetBoardStateUpdate();
+        this.indices.add(draggedPiece);
+      } else if (equal(pair, ["bomb", "bomb"])) {
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace("bomb", "");
+
+        const i = targetPiece;
+        const b = this.boardSize;
+
+        const additionalPieces: (number | false)[] = ([] = []);
+        additionalPieces.push(
+          draggedPiece,
+          i - 2 - b >= 0 && i % b > 1 && i - 2 - b,
+          i - 1 - 2 * b >= 0 && i % b > 0 && i - 1 - 2 * b,
+          i - 2 + b < b * b && i % b > 1 && i - 2 + b,
+          i - 1 + 2 * b < b * b && i % b > 0 && i - 1 + 2 * b,
+          i + 2 - b >= 0 && i % b < b - 2 && i + 2 - b,
+          i + 1 - 2 * b >= 0 && i % b < b - 1 && i + 1 - 2 * b,
+          i + 2 + b < b * b && i % b < b - 2 && i + 2 + b,
+          i + 1 + 2 * b < b * b && i % b < b - 1 && i + 1 + 2 * b
+        );
+
+        this.resetBoardStateUpdate();
+        additionalPieces.filter((item): item is number => !!item).forEach((item) => this.indices.add(item));
+      } else {
+        //trivial cases
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(pair[0], "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(pair[1], `${pair[0]} ${pair[1]}`);
+        this.resetBoardStateUpdate();
+        this.indices.add(draggedPiece);
+      }
+    };
+
+    pairTypeActions(...pair);
+
+    this.explodeSpecials(targetPiece);
+    return true;
   }
 
   perkAction(type: Perk) {
@@ -962,7 +957,7 @@ export class BoardViewModel {
       });
   }
 
-  lightningExplode(index: number) {
+  lightningExplode(index: number, double = false) {
     let idx: number[] = [];
     this.currentPieces
       .filter((e, i) => i !== index)
@@ -971,7 +966,10 @@ export class BoardViewModel {
       });
     const shuffled = this.unbiasedShuffle(idx);
 
-    const shuffledSlice = shuffled.slice(0, this._lightningExplodePower);
+    const power = double ? 2 * this._lightningExplodePower : this._lightningExplodePower;
+    // (mainStr.split("str").length - 1)
+
+    const shuffledSlice = shuffled.slice(0, power);
     const endPoints = shuffledSlice.map(this.getPiecesMiddle);
 
     this.lightningsParams = {
@@ -1008,7 +1006,12 @@ export class BoardViewModel {
       this.bombExplode(item);
     }
     if (this.currentPieces[item].includes(_classesSpecial.lightning)) {
-      this.lightningExplode(item);
+      console.log(this.currentPieces[item].split(_classesSpecial.lightning).length - 1);
+      if (this.currentPieces[item].split(_classesSpecial.lightning).length - 1 === 2) {
+        this.lightningExplode(item, true);
+      } else {
+        this.lightningExplode(item);
+      }
     }
   }
 
