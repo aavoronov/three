@@ -336,6 +336,11 @@ const BoardModel = observer(({ viewModel }: Props) => {
             <span style={{ color: "white" }}>=</span>
             <span className='piece lightning' style={{ width: 40, height: 40 }}></span>
           </div>
+          <div className='rule'>
+            <div className='doubleSpecialRule' style={{ marginRight: 10 }}></div>
+            <span style={{ color: "white" }}>=</span>
+            <div className='explosion' style={{ marginRight: 10 }}></div>
+          </div>
         </div>
 
         {vm.differentValueMode && (

@@ -196,7 +196,7 @@ export class BoardViewModel {
         text = `, игра против бота, ${this.botDifficultyModeText}`;
         break;
       default:
-        text = "";
+        text = ", бесконечный режим";
     }
     return text;
   }
