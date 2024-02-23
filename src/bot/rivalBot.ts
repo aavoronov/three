@@ -1,5 +1,5 @@
 import { reaction, runInAction } from "mobx";
-import { ClassRegular, constraintGamemodes, perks } from "../../constants";
+import { ClassRegular, constraintGamemodes, perks } from "../constants";
 import { BoardViewModel } from "../viewModels/boardViewModel";
 
 type Direction = "left" | "right" | "upwards" | "downwards";
@@ -19,28 +19,14 @@ export class RivalBot {
   private constructor(private readonly vm: BoardViewModel) {
     console.log("bot instantiated");
 
-    // makeAutoObservable(this);
-    // this.vm.experimental_checkForPossibleMoves(this.vm.currentPieces);
-
     reaction(
       () => [this.botIsActive, this.canMove],
       () => {
         if (this.botIsActive && this.canMove) {
-          // console.log(this.vm.boardSize);
-
           this.makeMove();
         }
       }
     );
-
-    // setInterval(() => {
-    if (this.botIsActive && this.canMove) {
-      // console.log(this.vm.boardSize);
-      this.makeMove();
-    }
-    // }, 1000);
-
-    // setInterval(() => this.botIsActive && console.log("bot does its thing"), 1000);
   }
 
   private static _instance: RivalBot;
@@ -268,43 +254,41 @@ export class RivalBot {
     const checkForCorners = (virtualBoard: string[], index: number, change: Change) => {
       const toCheck = calculateCellsToCheckForMatch(change.direction, index);
       for (const i of toCheck) {
-        if (i % b === b - 2) {
+        if (i % b >= b - 2) {
           continue;
         }
+
+        // const lowerRight = [i, i + 1, i + 2, i + 2 - b, i + 2 - 2 * b];
         const upperLeft = [i, i + 1, i + 2, i + b, i + 2 * b];
         const lowerLeft = [i, i + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
         const upperRight = [i, i + 1, i + 2, i + 2 + b, i + 2 + 2 * b];
-        const lowerRight = [i, i + 1, i + 2, i + 2 - b, i + 2 - 2 * b];
-        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+        const lowerRight = [i + 2, i + 2 + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular | undefined;
 
         if (currentType) {
-          if (upperLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (upperLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, upperLeft, priority.bombCreation),
               result: `${i}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (lowerLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (lowerLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, lowerLeft, priority.bombCreation),
               result: `${i + 2 * b}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (upperRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (upperRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, upperRight, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (lowerRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (lowerRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, lowerRight, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
-            return;
           }
         }
       }
@@ -314,43 +298,39 @@ export class RivalBot {
       const b = this.vm.boardSize;
       const toCheck = calculateCellsToCheckForMatch(change.direction, index);
       for (const i of toCheck) {
-        if (i % b === b - 2) {
+        if (i % b >= b - 2) {
           continue;
         }
         const upper = [i, i + 1, i + 2, i + 1 + b, i + 1 + 2 * b];
         const left = [i, i + b, i + 2 * b, i + b + 1, i + b + 2];
         const lower = [i, i + 1, i + 2, i + 1 - b, i + 1 - 2 * b];
         const right = [i, i + 1, i + 2, i + 2 - b, i + 2 + b];
-        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular;
+        const currentType = virtualBoard[i].split(" ")[0] as ClassRegular | undefined;
 
         if (currentType) {
-          if (upper.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (upper.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, upper, priority.bombCreation),
               result: `${i + 1}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (left.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (left.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, left, priority.bombCreation),
               result: `${i + b}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (lower.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (lower.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, lower, priority.bombCreation),
               result: `${i + 1}: bomb of ${currentType}`,
             });
-            return;
           }
-          if (right.every((piece) => toCheck.includes(piece) && virtualBoard[piece] === currentType)) {
+          if (right.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
               ...formAMove(index, change, currentType, right, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
-            return;
           }
         }
       }
@@ -502,19 +482,11 @@ export class RivalBot {
     const usePerk = (perk: (typeof this.perksAvailable)[number]) => {
       this.vm.usePerk(perk, "red");
     };
-    let perk: (typeof this.perksAvailable)[number];
 
-    while (true) {
-      const pickedPerk = this.perksAvailable[Math.floor(Math.random() * this.perksAvailable.length)];
+    const unusedPerks = this.perksAvailable.filter((item) => !this.vm.perksUsedRed.includes(item));
+    const pickedPerk = unusedPerks[Math.floor(Math.random() * unusedPerks.length)];
 
-      if (!this.vm.perksUsedRed.includes(perk)) {
-        perk = pickedPerk;
-        console.log("picked");
-        break;
-      }
-    }
-
-    usePerk(perk);
+    usePerk(pickedPerk);
   }
 
   makeMove() {

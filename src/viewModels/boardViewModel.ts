@@ -1,4 +1,4 @@
-import { autorun, makeAutoObservable, observable, reaction, runInAction } from "mobx";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
 import {
   ClassRegular,
   ColorGamemode,
@@ -10,12 +10,10 @@ import {
   constraintGamemodes,
   perks,
   _colors,
-  ClassSpecial,
   classesSpecial,
-} from "../../constants";
+} from "../constants";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
 import { HandledEvents } from "react-swipeable/es/types";
-import { types } from "sass";
 
 interface LightningsParams {
   color: (typeof _colors)[keyof typeof _colors];
@@ -32,6 +30,11 @@ export class BoardViewModel {
     reaction(
       () => [this.boardSize, this.freeMode, this.colorGamemode, this.constraintGamemode, this.replay, this.differentValueMode],
       () => {
+        if (this.colorGamemode === colorGamemodes.regular) {
+          this.classes = classesRegular;
+        } else {
+          this.classes = classesRegular.slice(0, 5);
+        }
         this.classesInRandomOrder();
         this.populateBoard();
       }
@@ -55,18 +58,6 @@ export class BoardViewModel {
     );
 
     reaction(
-      () => this.colorGamemode,
-      () => {
-        if (this.colorGamemode === colorGamemodes.regular) {
-          this.classes = classesRegular;
-        } else {
-          this.classes = classesRegular.slice(0, 5);
-        }
-        this.classesInRandomOrder();
-      }
-    );
-
-    reaction(
       () => [this.movesLeft, this.turn, this.boardStabilized],
       () => {
         this.autoPassMove();
@@ -79,7 +70,6 @@ export class BoardViewModel {
         if (!this.boardStabilized) return;
         if (!this.checkForPossibleMoves(this.currentPieces).size) {
           this.shuffleBoard();
-          // console.log("must shuffle");
         }
       }
     );
@@ -406,6 +396,8 @@ export class BoardViewModel {
   };
 
   public dragDrop = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+    if (!this.draggedPiece) return;
+
     const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
 
     const isCorrectMove =
@@ -770,11 +762,8 @@ export class BoardViewModel {
     }
   }
 
-  swapPieces(index: number, index2: number) {
-    this.resetBoardStateUpdate();
-    let temp = this.currentPieces[index];
-    this.currentPieces[index] = this.currentPieces[index2];
-    this.currentPieces[index2] = temp;
+  countMadeMove() {
+    if (this.debugMode) return;
     this.movesMade = this.movesMade + 1;
     if (!this.movesMade) {
       this.timeElapsed = 0;
@@ -795,6 +784,14 @@ export class BoardViewModel {
     ) {
       this.movesLeft--;
     }
+  }
+
+  swapPieces(index: number, index2: number) {
+    this.resetBoardStateUpdate();
+    let temp = this.currentPieces[index];
+    this.currentPieces[index] = this.currentPieces[index2];
+    this.currentPieces[index2] = temp;
+    this.countMadeMove();
   }
 
   doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
@@ -831,7 +828,6 @@ export class BoardViewModel {
         equal(pair, ["arrowVertical", "arrowHorizontal"]) ||
         equal(pair, ["arrowVertical", "arrowVertical"])
       ) {
-        console.log(this.currentPieces[draggedPiece], this.currentPieces[targetPiece]);
         this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(arrowRegex, "");
         this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
 
@@ -870,6 +866,7 @@ export class BoardViewModel {
     pairTypeActions(...pair);
 
     this.explodeSpecials(targetPiece);
+    this.countMadeMove();
     return true;
   }
 
@@ -914,7 +911,7 @@ export class BoardViewModel {
 
     row.forEach((item) => {
       item !== index && !this.indices.has(item) && this.explodeSpecials(item);
-      this.indices.add(item);
+      !this.bombs.has(item) && this.indices.add(item);
     });
   }
 
@@ -928,7 +925,7 @@ export class BoardViewModel {
 
     column.forEach((item) => {
       item !== index && !this.indices.has(item) && this.explodeSpecials(item);
-      this.indices.add(item);
+      !this.bombs.has(item) && this.indices.add(item);
     });
   }
 
@@ -1005,7 +1002,7 @@ export class BoardViewModel {
       this.bombExplode(item);
     }
     if (this.currentPieces[item].includes(_classesSpecial.lightning)) {
-      console.log(this.currentPieces[item].split(_classesSpecial.lightning).length - 1);
+      // console.log(this.currentPieces[item].split(_classesSpecial.lightning).length - 1);
       if (this.currentPieces[item].split(_classesSpecial.lightning).length - 1 === 2) {
         this.lightningExplode(item, true);
       } else {
@@ -1093,118 +1090,134 @@ export class BoardViewModel {
 
   checkForCorners(currentPieces: string[]) {
     const b = this.boardSize;
-    for (let i = 0; i < b * b - 2; i++) {
-      if (i % b === b - 2) {
-        i += 2;
+    for (let i = 0; i < b * (b - 2); i++) {
+      if (i % b >= b - 2) {
+        continue;
       }
       const upperLeft = [i, i + 1, i + 2, i + b, i + 2 * b];
       const lowerLeft = [i, i + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
-      const currentType = currentPieces[i];
+      const currentType = currentPieces[i].split(" ")[0];
       if (currentType) {
-        if (upperLeft.every((piece) => currentPieces[piece] === currentType)) {
+        if (upperLeft.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           // console.log("upper left");
           upperLeft.forEach((index) => {
             this.indices.add(index);
           });
           !this.lightnings.size && this.bombs.add(i);
-          return true;
+          // return true;
         }
-        if (lowerLeft.every((piece) => currentPieces[piece] === currentType)) {
+        if (lowerLeft.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           // console.log("lower left");
+
           lowerLeft.forEach((index) => {
             this.indices.add(index);
           });
           !this.lightnings.size && this.bombs.add(i + 2 * b);
 
-          return true;
+          // return true;
         }
       }
     }
 
     for (let i = 0; i < b * (b - 2); i++) {
-      if (i % b === b - 2) {
-        i += 2;
+      if (i % b >= b - 2) {
+        continue;
       }
       const upperRight = [i, i + 1, i + 2, i + 2 + b, i + 2 + 2 * b];
-      const lowerRight = [i, i + 1, i + 2, i + 2 - b, i + 2 - 2 * b];
-      const currentType = currentPieces[i];
+      // pivot point:
+      // i-o
+      // --o
+      // ooo
+      const lowerRight = [i + 2, i + 2 + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
+      const currentType = currentPieces[i + 2].split(" ")[0];
       if (currentType) {
-        if (upperRight.every((piece) => currentPieces[piece] === currentType)) {
+        if (upperRight.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           // console.log("upper right");
           upperRight.forEach((index) => {
             this.indices.add(index);
           });
           !this.lightnings.size && this.bombs.add(i + 2);
 
-          return true;
+          // return true;
         }
-        if (lowerRight.every((piece) => currentPieces[piece] === currentType)) {
+        if (lowerRight.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
           // console.log("lower right");
           lowerRight.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && this.bombs.add(i + 2);
+          !this.lightnings.size && this.bombs.add(i + 2 * b + 2);
 
-          return true;
+          // return true;
         }
       }
     }
   }
+  //ok
 
   checkForTsAndPluses(currentPieces: string[]) {
     const b = this.boardSize;
-    for (let i = 0; i < b * b - 2; i++) {
-      if (i % b === b - 2) {
-        i += 2;
+    for (let i = 0; i < b * (b - 2); i++) {
+      if (i % b >= b - 2) {
+        continue;
       }
+
       const upper = [i, i + 1, i + 2, i + 1 + b, i + 1 + 2 * b];
       const left = [i, i + b, i + 2 * b, i + b + 1, i + b + 2];
-      const lower = [i, i + 1, i + 2, i + 1 - b, i + 1 - 2 * b];
-      const right = [i, i + 1, i + 2, i + 2 - b, i + 2 + b];
-      const plus = [i, i + 1, i + 2, i + 1 - b, i + 1 + b];
-      const currentType = currentPieces[i];
-      if (currentType) {
-        if (upper.every((piece) => currentPieces[piece] === currentType)) {
-          // console.log("upper");
-          upper.forEach((index) => {
-            this.indices.add(index);
-          });
-          !this.lightnings.size && this.bombs.add(i + 1);
-          return true;
-        }
-        if (left.every((piece) => currentPieces[piece] === currentType)) {
-          // console.log("left");
-          left.forEach((index) => {
-            this.indices.add(index);
-          });
-          !this.lightnings.size && this.bombs.add(i + b);
-          return true;
-        }
-        if (lower.every((piece) => currentPieces[piece] === currentType)) {
-          // console.log("lower");
-          lower.forEach((index) => {
-            this.indices.add(index);
-          });
-          !this.lightnings.size && this.bombs.add(i + 1);
-          return true;
-        }
-        if (right.every((piece) => currentPieces[piece] === currentType)) {
-          // console.log("right");
-          right.forEach((index) => {
-            this.indices.add(index);
-          });
-          !this.lightnings.size && this.bombs.add(i + 2);
-          return true;
-        }
-        if (plus.every((piece) => currentPieces[piece] === currentType)) {
-          // console.log("plus");
-          plus.forEach((index) => {
-            this.indices.add(index);
-          });
-          !this.lightnings.size && this.bombs.add(i + 1);
+      const lower = [i + 1, i + 1 + b, i + 1 + 2 * b, i + 2 * b, i + 2 * b + 2];
+      const right = [i + b, i + b + 1, i + b + 2, i + 2, i + 2 * b + 2];
+      const plus = [i + 1, i + b + 1, i + 2 * b + 1, i + b, i + b + 2];
 
-          return true;
+      // const currentType = currentPieces[i].split(" ")[0];
+
+      const currentType = (arr: number[]) => {
+        // console.log(arr);
+        try {
+          return currentPieces[arr[0]].split(" ")[0];
+        } catch (e) {
+          return false;
         }
+      };
+
+      if (upper.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
+        // console.log("upper");
+        upper.forEach((index) => {
+          this.indices.add(index);
+        });
+        !this.lightnings.size && this.bombs.add(i + 1);
+        // return true;
+      }
+      if (left.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
+        // console.log("left");
+        left.forEach((index) => {
+          this.indices.add(index);
+        });
+        !this.lightnings.size && this.bombs.add(i + b);
+        // return true;
+      }
+      if (lower.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
+        // console.log("lower");
+        lower.forEach((index) => {
+          this.indices.add(index);
+        });
+        !this.lightnings.size && this.bombs.add(i + 1 + 2 * b);
+        // return true;
+      }
+      if (right.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
+        // console.log("right");
+        right.forEach((index) => {
+          this.indices.add(index);
+        });
+        !this.lightnings.size && this.bombs.add(i + 2 + b);
+        // return true;
+      }
+      if (plus.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
+        // console.log("plus");
+        plus.forEach((index) => {
+          this.indices.add(index);
+        });
+        !this.lightnings.size && this.bombs.add(i + 1 + b);
+
+        return true;
       }
     }
   }
@@ -1387,12 +1400,6 @@ export class BoardViewModel {
       this._paramsHaveChanged = true;
     }
   };
-
-  testFn(i: number) {
-    if (!this.currentPieces[i].includes("lightning")) {
-      this.currentPieces[i] = this.currentPieces[i] + " lightning";
-    }
-  }
 
   //#endregion
 

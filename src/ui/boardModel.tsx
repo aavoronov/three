@@ -1,5 +1,5 @@
 // // TODO анимации уточнить, какие именно
-//? экстра мувы
+//TODO экстра мувы
 //? сервер, доска рекордов ограниченных режимов
 //? бустеры
 //? больше абилок
@@ -21,9 +21,11 @@
 //      уничтожив среднюю фишку внизу, матч исчезнет. Аналогично для стрелки слева
 //? ! молнии уничтожают другие молнии, не активируя? не должны вроде
 //fixed ограничить рекурсию, которая проявляется неизвестно как? - проявлялась взаимным уничтожением спецфишек
-//! не уничтожать только что созданную спецфишку другой
-//! бомба некоторыми уголками не создается
+//fixed не уничтожать только что созданную бомбу стрелкой - неправильно вычислялся тип фишки
+//fixed бомба некоторыми уголками не создается - частный случай ^ ?
+//fixed расчет ходов с образованием двух спецфишек
 //! бот уходит в минус по оставшимся ходам
+//fixed бот зависает на перке
 //fixed на пятом раунде красный получает заново 3 хода
 //done перк-молот
 //done эффект от молнии
@@ -64,7 +66,7 @@ import Head from "next/head";
 import Script from "next/script";
 import React, { useEffect, useRef } from "react";
 import { SwipeDirections, useSwipeable } from "react-swipeable";
-import { colorGamemodes, constraintGamemodes, perks } from "../../constants";
+import { colorGamemodes, constraintGamemodes, perks } from "../constants";
 import LightningsLayer from "../components/lightnings";
 import { BoardViewModel } from "../viewModels/boardViewModel";
 import { RivalBot } from "../bot/rivalBot";
