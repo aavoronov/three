@@ -96,8 +96,6 @@ export class BoardViewModel {
   private _botDifficulty: 0 | 1 | 2 = 0;
   private boardResetTimeout: NodeJS.Timeout | undefined;
 
-  // TODO extraMoveAwarded: boolean = false;
-
   //#endregion
 
   //#region props
@@ -126,6 +124,8 @@ export class BoardViewModel {
   perksUsedBlue: Perk[] = [];
   perksUsedRed: Perk[] = [];
   hammerMode: boolean = false;
+
+  public extraMoveAwarded: boolean = false;
 
   lightningsParams: LightningsParams | null = null;
 
@@ -1070,6 +1070,13 @@ export class BoardViewModel {
       this.count2 += score();
     }
 
+    if (
+      (this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
+      (this.bombs.size || this.lightnings.size || this.arrowsHorizontal.size || this.arrowsVertical.size)
+    ) {
+      this.awardExtraMove();
+    }
+
     this.indices.clear();
     this.bombs.clear();
     this.lightnings.clear();
@@ -1401,6 +1408,11 @@ export class BoardViewModel {
     }
   };
 
+  private awardExtraMove() {
+    this.extraMoveAwarded = true;
+    this.movesLeft++;
+  }
+
   //#endregion
 
   //#region helpers
@@ -1449,7 +1461,10 @@ export class BoardViewModel {
     //set new timeout
     this.boardResetTimeout = setTimeout(() => {
       //do stuff and clear timeout
-      runInAction(() => (this.boardStabilized = true));
+      runInAction(() => {
+        this.boardStabilized = true;
+        this.extraMoveAwarded = false;
+      });
       // console.log("stabilized");
       clearTimeout(this.boardResetTimeout);
       this.boardResetTimeout = null;

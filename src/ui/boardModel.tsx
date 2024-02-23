@@ -224,13 +224,13 @@ const BoardModel = observer(({ viewModel }: Props) => {
             <span className='gamemode'>
               {vm.multiplayerText.startText}
               <span style={{ color: vm.multiplayerText.currentColor.code }}>{vm.multiplayerText.currentColor.name}. </span>
-              {vm.multiplayerText.endText}
+              <span className={`movesLeft ${vm.extraMoveAwarded ? "extraMoveAwarded" : ""}`}>{vm.multiplayerText.endText}</span>
             </span>
           );
         })()}
 
-        {/* <button onClick={() => vm.shuffleBoard()}>shuffle</button>
-        <button onClick={() => console.log(bot.current)}>test</button> */}
+        {/* <button onClick={() => vm.shuffleBoard()}>extra move</button> */}
+        {/* <button onClick={() => console.log(bot.current)}>test</button> */}
 
         {vm.movesMade ? (
           <>

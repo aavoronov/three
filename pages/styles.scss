@@ -337,7 +337,12 @@ color: black;
 .gamemode {
   text-align: center;
   font-size: 18px;
+
+  .movesLeft.extraMoveAwarded {
+    color: #00c130;
+  }
 }
+
 .twoPlayerStatsWrap {
   display: flex;
   flex-direction: column;
