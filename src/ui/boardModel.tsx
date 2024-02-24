@@ -231,8 +231,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
             );
           })()}
 
-          {/* <button onClick={() => vm.indicateMove()}>indicate move</button> */}
-          {/* <button onClick={() => console.log(bot.current)}>test</button> */}
+          {/* <button onClick={null}>test</button> */}
 
           {vm.movesMade ? (
             <>

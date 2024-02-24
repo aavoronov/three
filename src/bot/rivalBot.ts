@@ -40,7 +40,7 @@ export class RivalBot {
 
   //#endregion
 
-  //#region props
+  //#region fields
 
   private readonly rollThresholds = [100, 300, 500];
   private readonly perkUseProbabilities = [0.05, 0.1, 0.15];
@@ -49,7 +49,7 @@ export class RivalBot {
   private readonly minMoveDelay = 1000;
   private readonly maxMoveDelay = 3000;
 
-  public get botIsActive() {
+  private get botIsActive() {
     return this.vm.constraintGamemode === constraintGamemodes.bot;
   }
   private get canMove() {

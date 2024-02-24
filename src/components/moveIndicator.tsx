@@ -4,7 +4,7 @@ import { CSSTransition } from "react-transition-group";
 const MoveIndicator = ({ startPoint, endPoint }: { startPoint: [number, number]; endPoint: [number, number] }) => {
   const nodeRef = useRef(null);
   return (
-    <CSSTransition in appear timeout={500} nodeRef={nodeRef} classNames='pointer'>
+    <CSSTransition in appear timeout={300} nodeRef={nodeRef} classNames='pointer'>
       <span
         ref={nodeRef}
         style={{
@@ -26,7 +26,7 @@ const MoveIndicator = ({ startPoint, endPoint }: { startPoint: [number, number];
             .pointer-appear-active {
               left: ${endPoint[0]}px;
               top: ${endPoint[1]}px;
-              transition: all 0.5s cubic-bezier(1, -0.02, 0.78, 0.38);
+              transition: all 0.3s cubic-bezier(1, -0.02, 0.78, 0.38);
             }
             .pointer-appear-done {
               left: ${endPoint[0]}px;

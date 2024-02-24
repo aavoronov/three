@@ -798,16 +798,19 @@ export class BoardViewModel {
       startPoint: this.getPiecesMiddle(index),
       endPoint: this.getPiecesMiddle(index2),
     };
-    setTimeout(() => {
-      let temp = this.currentPieces[index];
-      this.resetBoardStateUpdate();
-      runInAction(() => {
-        this.currentPieces[index] = this.currentPieces[index2];
-        this.currentPieces[index2] = temp;
-        this.movePointerParams = null;
-      });
-      this.countMadeMove();
-    }, 600);
+    setTimeout(
+      () => {
+        let temp = this.currentPieces[index];
+        this.resetBoardStateUpdate();
+        runInAction(() => {
+          this.currentPieces[index] = this.currentPieces[index2];
+          this.currentPieces[index2] = temp;
+          this.movePointerParams = null;
+        });
+        this.countMadeMove();
+      },
+      this.debugMode ? 0 : 400
+    );
   }
 
   doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
@@ -1432,14 +1435,6 @@ export class BoardViewModel {
   //#endregion
 
   //#region helpers
-
-  private indicateMove() {
-    this.movePointerParams = {
-      startPoint: this.getPiecesMiddle(0),
-      endPoint: this.getPiecesMiddle(8),
-    };
-    setTimeout(() => runInAction(() => (this.movePointerParams = null)), 300);
-  }
 
   private unbiasedShuffle<T extends unknown = string>(array: T[]): T[] {
     let currentIndex = array.length;
