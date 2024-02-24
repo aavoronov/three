@@ -27,6 +27,7 @@
 //! бот уходит в минус по оставшимся ходам
 //fixed бот зависает на перке
 //fixed на пятом раунде красный получает заново 3 хода
+//done указатель текущего хода
 //done перк-молот
 //done эффект от молнии
 //fixed молния срабатывает несколько раз в цепочке спецфишек
@@ -70,6 +71,7 @@ import { colorGamemodes, constraintGamemodes, perks } from "../constants";
 import LightningsLayer from "../components/lightnings";
 import { BoardViewModel } from "../viewModels/boardViewModel";
 import { RivalBot } from "../bot/rivalBot";
+import MoveIndicator from "../components/moveIndicator";
 
 interface Props {
   viewModel: BoardViewModel;
@@ -161,6 +163,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
           color={vm.lightningsParams.color}
         />
       )}
+      {!!vm.movePointerParams && <MoveIndicator startPoint={vm.movePointerParams.startPoint} endPoint={vm.movePointerParams.endPoint} />}
       <div className={`controlPanel${vm.menuIsOpen ? " opened" : ""}`}>
         <div className='boardSizeBtns'>
           <button className='boardSizeBtn' onClick={vm.shrinkBoard}>
@@ -228,7 +231,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
             );
           })()}
 
-          {/* <button onClick={() => vm.shuffleBoard()}>extra move</button> */}
+          <button onClick={() => vm.indicateMove()}>indicate move</button>
           {/* <button onClick={() => console.log(bot.current)}>test</button> */}
 
           {vm.movesMade ? (

@@ -489,7 +489,7 @@ export class RivalBot {
     usePerk(pickedPerk);
   }
 
-  makeMove() {
+  private makeMove() {
     const rollForPerkUse = Math.random();
 
     const delay = this.getMoveDelay();
