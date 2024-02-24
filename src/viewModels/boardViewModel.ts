@@ -1433,7 +1433,7 @@ export class BoardViewModel {
 
   //#region helpers
 
-  public indicateMove() {
+  private indicateMove() {
     this.movePointerParams = {
       startPoint: this.getPiecesMiddle(0),
       endPoint: this.getPiecesMiddle(8),
