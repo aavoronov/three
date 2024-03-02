@@ -36,8 +36,40 @@ export const constraintGamemodes = Object.freeze({
 });
 export const perks = Object.freeze({ shuffle: "shuffle", bomb: "bomb", hammer: "hammer" });
 
+export const counterpartMoves = {
+  left: "right",
+  right: "left",
+  upwards: "downwards",
+  downwards: "upwards",
+} as const;
+
+export const priority = {
+  lightningCreation: 9,
+  bombCreation: 8,
+  arrowCreation: 7,
+  doubleSpecial: 6,
+  lightningExplosion: 5,
+  bombExplosion: 4,
+  // arrowExplosion: b > 6 ? 3 : 2,
+  // doubleMatch: b > 6 ? 2 : 3,
+  arrowExplosion: 3,
+  doubleMatch: 2,
+  default: 1,
+} as const;
+
 export type ClassRegular = (typeof classesRegular)[number];
 export type ClassSpecial = (typeof classesSpecial)[number];
 export type ColorGamemode = keyof typeof colorGamemodes;
 export type ConstraintGamemode = keyof typeof constraintGamemodes;
 export type Perk = keyof typeof perks;
+
+export type Direction = "left" | "right" | "upwards" | "downwards";
+export interface Move {
+  key: string;
+  color: ClassRegular | "mixed";
+  direction: Direction;
+  index: number;
+  by: number;
+  value: number;
+  result: string;
+}

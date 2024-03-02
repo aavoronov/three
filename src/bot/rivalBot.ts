@@ -1,17 +1,8 @@
 import { reaction, runInAction } from "mobx";
-import { ClassRegular, constraintGamemodes, perks } from "../constants";
-import { BoardViewModel } from "../viewModels/boardViewModel";
-
-type Direction = "left" | "right" | "upwards" | "downwards";
-interface Move {
-  key: string;
-  color: ClassRegular | "mixed";
-  direction: Direction;
-  index: number;
-  by: number;
-  value: number;
-  result: string;
-}
+import { classesSpecial, constraintGamemodes, perks, priority } from "../constants";
+import { ClassRegular, Direction, Move } from "../types";
+import { BoardViewModel } from "../board/boardViewModel";
+import { MovesCollection } from "../movesCollection";
 
 export class RivalBot {
   //#region ctor
@@ -73,126 +64,9 @@ export class RivalBot {
       { direction: "downwards", by: +b },
     ] as const;
 
-    const counterpartMoves = {
-      left: "right",
-      right: "left",
-      upwards: "downwards",
-      downwards: "upwards",
-    } as const;
-
     type Change = (typeof possiblePositionChanges)[number];
 
-    const priority = {
-      highest: 10,
-      doubleSpecial: 9,
-      lightningExplosion: 8,
-      bombExplosion: 7,
-      arrowExplosion: b > 6 ? 6 : 2,
-      lightningCreation: 5,
-      bombCreation: 4,
-      arrowCreation: 3,
-      doubleMatch: b > 6 ? 2 : 6,
-      default: 1,
-    } as const;
-
-    class MovesCollection {
-      private _moves: Move[] = [];
-
-      private findMove(index: number, direction: Direction) {
-        return this._moves.find((item) => item.index === index && item.direction === direction);
-      }
-
-      private counterpartExists(move: Move): boolean {
-        const { index, direction } = move;
-
-        let to: number;
-        switch (direction) {
-          case "right":
-            to = index + 1;
-            break;
-          case "left":
-            to = index - 1;
-            break;
-          case "upwards":
-            to = index - b;
-            break;
-          case "downwards":
-            to = index + b;
-            break;
-        }
-
-        if (this.findMove(to, counterpartMoves[direction])) return true;
-
-        return false;
-      }
-
-      add(move: Move) {
-        if (this.counterpartExists(move)) {
-          return;
-        }
-        this._moves.push(move);
-      }
-
-      private deduplicate() {
-        const findDuplicates = <T>(array: T[]) => array.filter((item, index, self) => self.indexOf(item) !== index);
-
-        const combineOrPruneDuplicates = (key: string) => {
-          const getColorsForAMove = (key: string) => {
-            return new Set<string>(this._moves.filter((move) => move.key === key).map((move) => move.color));
-          };
-
-          const getIndicesForAMove = (key: string) => {
-            debugger;
-            return this._moves.flatMap((move, i) => (move.key === key ? i : []));
-          };
-
-          const combineTwoMovesIntoOne = (move1: Move, move2: Move): Move => {
-            let value: number;
-
-            if (move1.value > priority.doubleSpecial || move2.value > priority.doubleSpecial) {
-              value = priority.highest;
-            } else if (move1.value >= priority.arrowExplosion && move2.value >= priority.arrowExplosion) {
-              value = priority.doubleSpecial;
-            } else if (move1.value >= priority.arrowCreation || move2.value >= priority.arrowCreation) {
-              value = Math.max(move1.value, move2.value);
-            } else value = priority.doubleMatch;
-
-            return {
-              by: move1.by,
-              color: "mixed",
-              direction: move1.direction,
-              index: move1.index,
-              key: move1.key,
-              result: move1.result + ", " + move2.result,
-              value,
-            };
-          };
-
-          const colors = Array.from(getColorsForAMove(key));
-          const indices = getIndicesForAMove(key);
-
-          const bestMoves = colors.map(
-            (color) => this._moves.filter((move) => move.key === key && move.color === color).toSorted((a, b) => b.value - a.value)[0]
-          );
-
-          const singleBestMove = bestMoves.length === 1 ? bestMoves[0] : combineTwoMovesIntoOne(bestMoves[0], bestMoves[1]);
-
-          this._moves.splice(indices[0], indices.length, singleBestMove);
-        };
-
-        const keys = this._moves.map((item) => item.key);
-        const duplicateElements = new Set(findDuplicates(keys));
-
-        Array.from(duplicateElements).forEach(combineOrPruneDuplicates);
-      }
-
-      get moves() {
-        this.deduplicate();
-        return this._moves;
-      }
-    }
-
-    let possibleMoves: MovesCollection = new MovesCollection();
+    let possibleMoves = new MovesCollection(b);
 
     const virtuallySwapPieces = (virtualBoard: string[], index: number, index2: number) => {
       let temp = virtualBoard[index];
@@ -203,15 +77,16 @@ export class RivalBot {
     const formAMove = (
       index: number,
       change: Change,
-      currentType: ClassRegular,
+      currentType: ClassRegular | "mixed",
       move: number[],
       fallbackValue: number
     ): Omit<Move, "result" | "specials"> => {
       const specials = move.filter((i) => board[i].includes("arrow") || board[i].includes("bomb") || board[i].includes("lightning"));
       let value = fallbackValue;
-      if (specials.length > 3) {
-        value = priority.highest;
-      } else if (specials.length === 2) {
+      // if (specials.length > 3) {
+      //   value = priority.do;
+      // } else
+      if (specials.length > 2) {
         value = priority.doubleSpecial;
       } else if (specials.length) {
         if (board[specials[0]].includes("arrow")) value = priority.arrowExplosion;
@@ -251,6 +126,38 @@ export class RivalBot {
       }
     };
 
+    const checkforDoubleSpecialMoves = (virtualBoard: string[], index: number, change: Change) => {
+      const getSpecialType = (index: number) => {
+        const piece = virtualBoard[index];
+        for (const type of classesSpecial) {
+          if (piece.includes(type)) {
+            return type;
+          }
+        }
+
+        return false;
+      };
+
+      const toCheck = calculateCellsToCheckForMatch(change.direction, index);
+      for (const i of toCheck) {
+        if (i + change.by < 0 || i + change.by >= this.vm.boardSize * this.vm.boardSize) continue;
+        if ((i % b === b - 1 && (i + change.by) % b === 0) || (i % b === 0 && (i + change.by) % b === b - 1)) {
+          continue;
+        }
+
+        const maybePair = [getSpecialType(i), getSpecialType(i + change.by)];
+
+        if (maybePair.some((item) => !item)) return;
+
+        console.log("there is a move");
+
+        possibleMoves.add({
+          ...formAMove(i, change, "mixed", [i + change.by], priority.doubleSpecial),
+          result: `${i + change.by}: double special`,
+        });
+      }
+    };
+
     const checkForCorners = (virtualBoard: string[], index: number, change: Change) => {
       const toCheck = calculateCellsToCheckForMatch(change.direction, index);
       for (const i of toCheck) {
@@ -258,7 +165,6 @@ export class RivalBot {
           continue;
         }
 
-        // const lowerRight = [i, i + 1, i + 2, i + 2 - b, i + 2 - 2 * b];
         const upperLeft = [i, i + 1, i + 2, i + b, i + 2 * b];
         const lowerLeft = [i, i + b, i + 2 * b, i + 2 * b + 1, i + 2 * b + 2];
         const upperRight = [i, i + 1, i + 2, i + 2 + b, i + 2 + 2 * b];
@@ -426,6 +332,8 @@ export class RivalBot {
       for (const change of possiblePositionChanges) {
         const virtualBoard = [...board];
 
+        checkforDoubleSpecialMoves(virtualBoard, i, change);
+
         virtuallySwapPieces(virtualBoard, i, i + change.by);
         if (i + change.by < 0 || i + change.by >= this.vm.boardSize * this.vm.boardSize) continue;
         if ((i % b === b - 1 && (i + change.by) % b === 0) || (i % b === 0 && (i + change.by) % b === b - 1)) {
@@ -440,6 +348,7 @@ export class RivalBot {
     }
 
     console.log(possibleMoves.moves);
+    debugger;
     return possibleMoves.moves;
   }
 
@@ -475,6 +384,7 @@ export class RivalBot {
   }
 
   private commitMove(move: Move) {
+    if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
     this.vm.swapPieces(move.index, move.index + move.by);
   }
 

@@ -1,9 +1,5 @@
 import { makeAutoObservable, reaction, runInAction } from "mobx";
 import {
-  ClassRegular,
-  ColorGamemode,
-  ConstraintGamemode,
-  Perk,
   _classesSpecial,
   classesRegular,
   colorGamemodes,
@@ -11,20 +7,11 @@ import {
   perks,
   _colors,
   classesSpecial,
+  Direction,
 } from "../constants";
+import { ClassRegular, ColorGamemode, ConstraintGamemode, LightningsParams, MovePointerParams, Perk } from "../types";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
 import { HandledEvents } from "react-swipeable/es/types";
-
-interface LightningsParams {
-  color: (typeof _colors)[keyof typeof _colors];
-  startPoint: [number, number];
-  endPoints: [number, number][];
-}
-
-interface MovePointerParams {
-  startPoint: [number, number];
-  endPoint: [number, number];
-}
 
 export class BoardViewModel {
   //#region ctor
@@ -130,7 +117,7 @@ export class BoardViewModel {
   perksUsedRed: Perk[] = [];
   hammerMode: boolean = false;
 
-  public extraMoveAwarded: boolean = false;
+  extraMoveAwarded: boolean = false;
 
   lightningsParams: LightningsParams | null = null;
   movePointerParams: MovePointerParams | null = null;
@@ -260,15 +247,15 @@ export class BoardViewModel {
 
   //#region event handlers
 
-  public maybePromptUser = () => {
+  maybePromptUser = () => {
     return this._paramsHaveChanged || confirm("Изменить параметры игры? Счет будет обнулен");
   };
 
-  public toggleMenu = () => {
+  toggleMenu = () => {
     this.menuIsOpen = !this.menuIsOpen;
   };
 
-  public shrinkBoard = () => {
+  shrinkBoard = () => {
     if (this.boardSize <= 5) return;
     if (this.maybePromptUser()) {
       this.boardSize = this.boardSize - 1;
@@ -276,28 +263,28 @@ export class BoardViewModel {
     }
   };
 
-  public extendBoard = () => {
+  extendBoard = () => {
     if (this.maybePromptUser()) {
       this.boardSize = this.boardSize + 1;
       this.resetEverything();
     }
   };
 
-  public toggleColorGamemode = () => {
+  toggleColorGamemode = () => {
     if (this.maybePromptUser()) {
       this.colorGamemode = this.colorGamemode === colorGamemodes.regular ? colorGamemodes.fiveColors : colorGamemodes.regular;
       this.resetEverything();
     }
   };
 
-  public toggleFreeMode = () => {
+  toggleFreeMode = () => {
     if (this.maybePromptUser()) {
       this.freeMode = !this.freeMode;
       this.resetEverything();
     }
   };
 
-  public enterLimitedMovesGamemode = () => {
+  enterLimitedMovesGamemode = () => {
     if (this.maybePromptUser()) {
       this.constraintGamemode = constraintGamemodes.moves;
       this.movesLeft = 20;
@@ -305,7 +292,7 @@ export class BoardViewModel {
     }
   };
 
-  public enterLimitedTimeGamemode = () => {
+  enterLimitedTimeGamemode = () => {
     if (this.maybePromptUser()) {
       this.constraintGamemode = constraintGamemodes.time;
       this.timeLeft = 60;
@@ -313,7 +300,7 @@ export class BoardViewModel {
     }
   };
 
-  public enterMultiplayer = () => {
+  enterMultiplayer = () => {
     if (this.maybePromptUser()) {
       this.constraintGamemode = constraintGamemodes.multiplayer;
       this.movesLeft = 3;
@@ -322,7 +309,7 @@ export class BoardViewModel {
     }
   };
 
-  public enterBotMode = () => {
+  enterBotMode = () => {
     if (this.maybePromptUser()) {
       this.constraintGamemode = constraintGamemodes.bot;
       this.movesLeft = 3;
@@ -331,7 +318,7 @@ export class BoardViewModel {
     }
   };
 
-  public enterRegularMode = () => {
+  enterRegularMode = () => {
     if (this.maybePromptUser()) {
       this.constraintGamemode = constraintGamemodes.regular;
       this.movesLeft = 3;
@@ -340,14 +327,14 @@ export class BoardViewModel {
     }
   };
 
-  public toggleDifferentValueMode = () => {
+  toggleDifferentValueMode = () => {
     if (this.maybePromptUser()) {
       this.differentValueMode = !this.differentValueMode;
       this.resetEverything();
     }
   };
 
-  public toggledebugMode = () => {
+  toggledebugMode = () => {
     if (this.debugMode || prompt("Ага, думаешь, так просто? Введи пароль") === "test") {
       //да, я знаю, что его здесь видно, но много ли кто сюда полезет, кроме тебя?
       this.debugMode = !this.debugMode;
@@ -355,7 +342,7 @@ export class BoardViewModel {
     }
   };
 
-  public usePerk = (perk: Perk, turn: "blue" | "red") => {
+  usePerk = (perk: Perk, turn: "blue" | "red") => {
     let perksUsed: Perk[] = [];
 
     if (!this.boardStabilized) return;
@@ -380,7 +367,7 @@ export class BoardViewModel {
     this.perkAction(perk);
   };
 
-  public breakPieceInHammerMode = (e: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  breakPieceInHammerMode = (e: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
     if (!this.hammerMode) return;
     this.resetBoardStateUpdate();
     const index = parseInt((e.target as HTMLSpanElement).attributes["data-key"].value);
@@ -393,7 +380,7 @@ export class BoardViewModel {
     }
   };
 
-  public dragStart = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  dragStart = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
     if (!this.boardStabilized) return;
     if (this.gameOver || !this.movesLeft) return;
     if (!this.debugMode) return;
@@ -401,7 +388,7 @@ export class BoardViewModel {
     this.draggedPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
   };
 
-  public dragDrop = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  dragDrop = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
     if (!this.draggedPiece) return;
 
     const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
@@ -426,21 +413,22 @@ export class BoardViewModel {
     }
   };
 
-  public dragEnd = () => {
+  dragEnd = () => {
     this.draggedPiece = null;
   };
 
-  public swipeStart = (event: HandledEvents) => {
+  swipeStart = (event: HandledEvents) => {
     if (!this.boardStabilized) return;
     if (this.gameOver || !this.movesLeft) return;
     if (this.constraintGamemode === constraintGamemodes.bot && this.turn === 2) return;
 
+    this.extraMoveAwarded = false;
     this.draggedPiece = parseInt((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
   };
 
-  // public swipeStart = this._swipeStart.bind(this);
+  //  swipeStart = this._swipeStart.bind(this);
 
-  public swipeEnd = (eventData: SwipeEventData) => {
+  swipeEnd = (eventData: SwipeEventData) => {
     // console.log("User Swiped!", eventData);
 
     const swapPiecesBackAndForth = (source: number, target: number, direction: SwipeDirections) => {
@@ -522,7 +510,7 @@ export class BoardViewModel {
     this.draggedPiece = null;
   };
 
-  public handleReplay = () => {
+  handleReplay = () => {
     this.resetEverything();
     this.classesInRandomOrder();
   };
@@ -566,7 +554,6 @@ export class BoardViewModel {
     } as const;
 
     type Change = (typeof possiblePositionChanges)[number];
-    type Direction = (typeof possiblePositionChanges)[number]["direction"];
 
     class MoveMap extends Map<string, string> {
       constructor() {
@@ -837,7 +824,7 @@ export class BoardViewModel {
 
     if (maybePair.some((item) => !item)) return false;
 
-    const pair: SpecialsPair = maybePair as SpecialsPair;
+    const pair = maybePair as SpecialsPair;
 
     const arrowRegex = /arrow(.*)/;
     const pairTypeActions = (...pair: SpecialsPair) => {
@@ -882,10 +869,24 @@ export class BoardViewModel {
       }
     };
 
-    pairTypeActions(...pair);
+    this.movePointerParams = {
+      startPoint: this.getPiecesMiddle(draggedPiece),
+      endPoint: this.getPiecesMiddle(targetPiece),
+    };
+    setTimeout(
+      () => {
+        runInAction(() => {
+          pairTypeActions(...pair);
 
-    this.explodeSpecials(targetPiece);
-    this.countMadeMove();
+          this.explodeSpecials(targetPiece);
+          this.countMadeMove();
+
+          this.movePointerParams = null;
+        });
+      },
+      this.debugMode ? 0 : 400
+    );
+
     return true;
   }
 
@@ -1091,7 +1092,8 @@ export class BoardViewModel {
 
     if (
       (this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
-      (this.bombs.size || this.lightnings.size || this.arrowsHorizontal.size || this.arrowsVertical.size)
+      (this.bombs.size || this.lightnings.size || this.arrowsHorizontal.size || this.arrowsVertical.size) &&
+      !this.extraMoveAwarded
     ) {
       this.awardExtraMove();
     }
@@ -1481,6 +1483,7 @@ export class BoardViewModel {
     this.boardResetTimeout = setTimeout(() => {
       //do stuff and clear timeout
       runInAction(() => {
+        // console.log("stabilizing");
         this.boardStabilized = true;
         this.extraMoveAwarded = false;
       });

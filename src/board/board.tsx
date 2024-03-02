@@ -25,6 +25,10 @@
 //fixed бомба некоторыми уголками не создается - частный случай ^ ?
 //fixed расчет ходов с образованием двух спецфишек
 //! бот уходит в минус по оставшимся ходам
+//done научить бота делать двойные ходы спецфишками
+//done изменить приоритет ходов у бота в пользу экстра мувов
+//done указатель для двойных спецфишечных ходов
+//fixed исправить начисление экстра мувов
 //fixed бот зависает на перке
 //fixed на пятом раунде красный получает заново 3 хода
 //done указатель текущего хода
@@ -66,12 +70,12 @@ import { observer } from "mobx-react";
 import Head from "next/head";
 import Script from "next/script";
 import React, { useEffect, useRef } from "react";
-import { SwipeDirections, useSwipeable } from "react-swipeable";
-import { colorGamemodes, constraintGamemodes, perks } from "../constants";
-import LightningsLayer from "../components/lightnings";
-import { BoardViewModel } from "../viewModels/boardViewModel";
+import { useSwipeable } from "react-swipeable";
 import { RivalBot } from "../bot/rivalBot";
+import LightningsLayer from "../components/lightnings";
 import MoveIndicator from "../components/moveIndicator";
+import { colorGamemodes, constraintGamemodes, perks } from "../constants";
+import { BoardViewModel } from "./boardViewModel";
 
 interface Props {
   viewModel: BoardViewModel;
