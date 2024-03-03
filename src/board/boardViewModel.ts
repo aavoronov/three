@@ -1,4 +1,4 @@
-import { makeAutoObservable, reaction, runInAction } from "mobx";
+import { action, computed, makeAutoObservable, makeObservable, observable, runInAction } from "mobx";
 import {
   _classesSpecial,
   classesRegular,
@@ -15,8 +15,93 @@ import { HandledEvents } from "react-swipeable/es/types";
 
 export class BoardViewModel {
   //#region ctor
+
   constructor() {
-    makeAutoObservable(this);
+    // makeAutoObservable(this);
+
+    makeObservable(this, {
+      boardSize: observable,
+      colorGamemode: observable,
+      freeMode: observable,
+      constraintGamemode: observable,
+      differentValueMode: observable,
+      debugMode: observable,
+      modeHasChanged: observable,
+      gameOver: observable,
+      menuIsOpen: observable,
+      draggedPiece: observable,
+      movesMade: observable,
+      movesLeft: observable,
+      timeElapsed: observable,
+      timeLeft: observable,
+      count: observable,
+      count2: observable,
+      turn: observable,
+      roundNumber: observable,
+      perksUsedBlue: observable,
+      perksUsedRed: observable,
+      hammerMode: observable,
+      botDifficulty: observable,
+      extraMoveAwarded: observable,
+      lightningsParams: observable,
+      movePointerParams: observable,
+      boardStabilized: observable,
+      currentPieces: observable,
+      classes: observable.ref,
+
+      botDifficultyModeText: computed,
+      constraintModeText: computed,
+      modeText: computed,
+      multiplayerText: computed,
+      singleplayerScore: computed,
+      multiplayerScore: computed,
+      time: computed,
+      winner: computed,
+
+      toggleMenu: action,
+      changeBoardSize: action,
+      toggleColorGamemode: action,
+      toggleFreeMode: action,
+      toggleConstraintGamemode: action,
+      changeBotDifficulty: action,
+      toggleDifferentValueMode: action,
+      toggleDebugMode: action,
+      // usePerk: action,
+      breakPieceInHammerMode: action,
+      dragStart: action,
+      // dragDrop: action,
+      dragEnd: action,
+      swipeStart: action,
+      // swipeEnd: action,
+
+      classesInRandomOrder: action,
+      recursivelyDropColumn: action,
+      countMadeMove: action,
+      doubleSpecialPieceMove: action,
+      perkAction: action,
+      arrowHorizontalExplode: action,
+      arrowVerticalExplode: action,
+      bombExplode: action,
+      lightningExplode: action,
+      removeAllIndices: action,
+      checkForCorners: action,
+      checkForTsAndPluses: action,
+      checkForRowsOfFive: action,
+      checkForRowsOfFour: action,
+      checkForRowsOfThree: action,
+      checkForColumnsOfFive: action,
+      checkForColumnsOfFour: action,
+      checkForColumnsOfThree: action,
+      tryAutoPassMove: action,
+      resetEverything: action,
+      resetBoardStateUpdate: action,
+    });
+
+    //setters
+    // currentPieces
+    // classes
+
+    //actions
   }
 
   //#endregion
@@ -27,77 +112,53 @@ export class BoardViewModel {
   private readonly _neutralColor = "white";
   private readonly _lightningExplodePower = 12;
 
-  private _currentPieces: string[] = [];
-  private _classes: ClassRegular[] = classesRegular;
-  private _paramsHaveChanged: boolean = false;
+  private _paramsHaveChanged = false;
 
-  private indices: Set<number> = new Set();
-  private arrowsVertical: Set<number> = new Set();
-  private arrowsHorizontal: Set<number> = new Set();
-  private bombs: Set<number> = new Set();
-  private lightnings: Set<number> = new Set();
+  private indices = new Set<number>();
+  private arrowsVertical = new Set<number>();
+  private arrowsHorizontal = new Set<number>();
+  private bombs = new Set<number>();
+  private lightnings = new Set<number>();
 
-  private _botDifficulty: 0 | 1 | 2 = 0;
   private boardResetTimeout: NodeJS.Timeout | undefined;
 
   //#endregion
 
   //#region props
 
-  boardSize: number = 8;
-  roundsCount = 1;
+  classes: ClassRegular[] = classesRegular;
+  currentPieces: string[] = [];
+  boardSize = 8;
+  readonly roundsCount = 5;
   colorGamemode: ColorGamemode = colorGamemodes.regular;
-  freeMode: boolean = false;
+  freeMode = false;
   constraintGamemode: ConstraintGamemode = constraintGamemodes.regular;
-  differentValueMode: boolean = false;
-  debugMode: boolean = false;
-  modeHasChanged: boolean = false;
-  gameOver: boolean = false;
-  menuIsOpen: boolean = false;
+  differentValueMode = false;
+  debugMode = false;
+  modeHasChanged = false;
+  gameOver = false;
+  menuIsOpen = false;
   draggedPiece: number | null = null;
 
-  movesMade: number = 0;
-  movesLeft: number = 20;
-  timeElapsed: number = 0;
-  timeLeft: number = 180;
-  count: number = 0;
-  count2: number = 0;
+  movesMade = 0;
+  movesLeft = 20;
+  timeElapsed = 0;
+  timeLeft = 180;
+  count = 0;
+  count2 = 0;
   turn: 1 | 2 = 1;
-  roundNumber: number = 1;
+  roundNumber = 1;
   perksUsedBlue: Perk[] = [];
   perksUsedRed: Perk[] = [];
-  hammerMode: boolean = false;
+  hammerMode = false;
+  botDifficulty: 0 | 1 | 2 = 0;
 
-  extraMoveAwarded: boolean = false;
+  extraMoveAwarded = false;
 
   lightningsParams: LightningsParams | null = null;
   movePointerParams: MovePointerParams | null = null;
 
-  boardStabilized: boolean = true;
-
-  get currentPieces() {
-    return this._currentPieces;
-  }
-  set currentPieces(newPieces: string[]) {
-    this._currentPieces = newPieces;
-  }
-
-  get classes() {
-    return this._classes;
-  }
-  set classes(classesRegular: ClassRegular[]) {
-    this._classes = this.colorGamemode === colorGamemodes.regular ? classesRegular : classesRegular.slice(0, 5);
-  }
-
-  get botDifficulty() {
-    return this._botDifficulty;
-  }
-  set botDifficulty(value: 0 | 1 | 2) {
-    if (this.maybePromptUser()) {
-      this._botDifficulty = value;
-      this.resetEverything();
-    }
-  }
+  boardStabilized = true;
 
   get botDifficultyModeText() {
     let difficulty: string;
@@ -234,6 +295,13 @@ export class BoardViewModel {
     }
   };
 
+  changeBotDifficulty = (value: 0 | 1 | 2) => {
+    if (this.maybePromptUser()) {
+      this.botDifficulty = value;
+      this.resetEverything();
+    }
+  };
+
   toggleDifferentValueMode = () => {
     if (this.maybePromptUser()) {
       this.differentValueMode = !this.differentValueMode;
@@ -329,7 +397,6 @@ export class BoardViewModel {
     if (this.gameOver || !this.movesLeft) return;
     if (this.constraintGamemode === constraintGamemodes.bot && this.turn === 2) return;
 
-    this.extraMoveAwarded = false;
     this.draggedPiece = parseInt((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
   };
 
@@ -412,17 +479,32 @@ export class BoardViewModel {
       this.swapPieces(this.draggedPiece!, targetPiece);
     }
 
-    this.draggedPiece = null;
+    runInAction(() => (this.draggedPiece = null));
   };
 
   handleReplay = () => {
     this.resetEverything();
-    this.classesInRandomOrder();
   };
 
   //#endregion
 
   //#region methods
+
+  gameTick() {
+    if (this.boardStabilized) return;
+
+    this.checkForRowsOfFive(this.currentPieces);
+    this.checkForColumnsOfFive(this.currentPieces);
+    this.checkForCorners(this.currentPieces);
+    this.checkForTsAndPluses(this.currentPieces);
+    this.checkForRowsOfFour(this.currentPieces);
+    this.checkForColumnsOfFour(this.currentPieces);
+    this.checkForRowsOfThree(this.currentPieces);
+    this.checkForColumnsOfThree(this.currentPieces);
+
+    this.removeAllIndices();
+    this.recursivelyDropColumn();
+  }
 
   calculatePerksClassNames(perk: Perk, color: 1 | 2) {
     //maybe later: || this.perksUsedBlue.length === 3
@@ -616,14 +698,14 @@ export class BoardViewModel {
     } while (!!matchEncountered(newBoard));
 
     // console.log(newBoard);
-    this.currentPieces = newBoard;
+    runInAction(() => (this.currentPieces = newBoard));
   }
 
   populateBoard() {
     if (this.colorGamemode === colorGamemodes.regular) {
       this.classes = classesRegular;
     } else {
-      this.classes = classesRegular.slice(0, 5);
+      this.classes = this.unbiasedShuffle(classesRegular).slice(0, 5);
     }
     this.classesInRandomOrder();
 
@@ -639,12 +721,12 @@ export class BoardViewModel {
         rawPieces[i] = this.getRandomPiece();
       }
     }
-    this.currentPieces = rawPieces;
+    runInAction(() => (this.currentPieces = rawPieces));
   }
 
   tryEndGame() {
     if (
-      (this.constraintGamemode === constraintGamemodes.time && this.timeLeft === 0) ||
+      (this.constraintGamemode === constraintGamemodes.time && this.timeLeft <= 0) ||
       (this.constraintGamemode === constraintGamemodes.moves && this.movesLeft === 0) ||
       ((this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
         this.movesLeft === 0 &&
@@ -652,7 +734,7 @@ export class BoardViewModel {
         this.roundNumber === this.roundsCount &&
         this.boardStabilized)
     ) {
-      this.gameOver = true;
+      runInAction(() => (this.gameOver = true));
     }
   }
 
@@ -700,18 +782,22 @@ export class BoardViewModel {
 
   endMove() {
     // console.log("stabilizing");
-    this.boardStabilized = true;
-    this.extraMoveAwarded = false;
+    runInAction(() => {
+      this.boardStabilized = true;
+      this.extraMoveAwarded = false;
+    });
     this.tryEndGame();
     this.tryAutoPassMove();
     this.tryShuffleBoard();
   }
 
   swapPieces(index: number, index2: number) {
-    this.movePointerParams = {
-      startPoint: this.getPiecesMiddle(index),
-      endPoint: this.getPiecesMiddle(index2),
-    };
+    runInAction(() => {
+      this.movePointerParams = {
+        startPoint: this.getPiecesMiddle(index),
+        endPoint: this.getPiecesMiddle(index2),
+      };
+    });
     setTimeout(
       () => {
         let temp = this.currentPieces[index];
@@ -1032,8 +1118,8 @@ export class BoardViewModel {
       () =>
         runInAction(() => {
           for (let i = 0; i < this.boardSize * this.boardSize; i++) {
-            if (this._currentPieces[i].includes("shrink")) {
-              this._currentPieces[i] = "";
+            if (this.currentPieces[i].includes("shrink")) {
+              this.currentPieces[i] = "";
             }
           }
         }),
@@ -1353,8 +1439,10 @@ export class BoardViewModel {
   };
 
   private awardExtraMove() {
-    this.extraMoveAwarded = true;
-    this.movesLeft++;
+    runInAction(() => {
+      this.extraMoveAwarded = true;
+      this.movesLeft++;
+    });
   }
 
   //#endregion
@@ -1394,7 +1482,7 @@ export class BoardViewModel {
     return _colors[classList[1]];
   }
 
-  private resetBoardStateUpdate() {
+  resetBoardStateUpdate() {
     // console.log("timer reset");
     this.boardStabilized = false;
     //clear timeout if already applied

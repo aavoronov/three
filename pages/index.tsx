@@ -6,7 +6,7 @@ import BoardModel from "../src/board/board";
 const Board = () => {
   const viewModel = new BoardViewModel();
 
-  return <BoardModel viewModel={viewModel} />;
+  return <BoardModel vm={viewModel} />;
 };
 
 export default Board;

@@ -78,7 +78,7 @@ import { colorGamemodes, constraintGamemodes, perks } from "../constants";
 import { BoardViewModel } from "./boardViewModel";
 
 interface Props {
-  viewModel: BoardViewModel;
+  vm: BoardViewModel;
 }
 
 const swipeConfig = {
@@ -91,16 +91,8 @@ const swipeConfig = {
   touchEventOptions: { passive: true }, // options for touch listeners (*See Details*)
 };
 
-const BoardModel = observer(({ viewModel }: Props) => {
-  const vm = viewModel;
-
+const BoardModel = observer(({ vm }: Props) => {
   const bot = useRef<RivalBot>();
-
-  useEffect(() => {
-    bot.current = RivalBot.getInstance(viewModel);
-
-    return () => (bot.current = null);
-  }, []);
 
   const swipeHandlers = useSwipeable({
     onSwiped: (eventData) => {
@@ -114,33 +106,23 @@ const BoardModel = observer(({ viewModel }: Props) => {
   });
 
   useEffect(() => {
+    bot.current = RivalBot.getInstance(vm);
+
+    return () => (bot.current = null);
+  }, []);
+
+  useEffect(() => {
     vm.populateBoard();
 
     const timeIncrement = setInterval(() => {
       if (vm.gameOver || !vm.movesMade) return;
       runInAction(() => {
         vm.timeElapsed++;
-        vm.constraintGamemode === "time" && vm.timeLeft--;
+        vm.constraintGamemode === "time" && vm.timeLeft > 0 && vm.timeLeft--;
       });
     }, 1000);
 
-    const timer = setInterval(() => {
-      runInAction(() => {
-        if (vm.boardStabilized) return;
-
-        vm.checkForRowsOfFive(vm.currentPieces);
-        vm.checkForColumnsOfFive(vm.currentPieces);
-        vm.checkForCorners(vm.currentPieces);
-        vm.checkForTsAndPluses(vm.currentPieces);
-        vm.checkForRowsOfFour(vm.currentPieces);
-        vm.checkForColumnsOfFour(vm.currentPieces);
-        vm.checkForRowsOfThree(vm.currentPieces);
-        vm.checkForColumnsOfThree(vm.currentPieces);
-
-        vm.removeAllIndices();
-        vm.recursivelyDropColumn();
-      });
-    }, 250);
+    const timer = setInterval(() => vm.gameTick(), 250);
 
     return () => {
       clearInterval(timeIncrement);
@@ -206,13 +188,13 @@ const BoardModel = observer(({ viewModel }: Props) => {
         {vm.constraintGamemode === constraintGamemodes.bot && (
           <div className='bot-difficulty'>
             <span>Сложность бота</span>
-            <button className={vm.botDifficulty === 0 ? "active" : ""} onClick={() => (vm.botDifficulty = 0)}>
+            <button className={vm.botDifficulty === 0 ? "active" : ""} onClick={() => vm.changeBotDifficulty(0)}>
               Легко
             </button>
-            <button className={vm.botDifficulty === 1 ? "active" : ""} onClick={() => (vm.botDifficulty = 1)}>
+            <button className={vm.botDifficulty === 1 ? "active" : ""} onClick={() => vm.changeBotDifficulty(1)}>
               Средне
             </button>
-            <button className={vm.botDifficulty === 2 ? "active" : ""} onClick={() => (vm.botDifficulty = 2)}>
+            <button className={vm.botDifficulty === 2 ? "active" : ""} onClick={() => vm.changeBotDifficulty(2)}>
               Сложно
             </button>
           </div>
