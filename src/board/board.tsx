@@ -170,11 +170,11 @@ const BoardModel = observer(({ viewModel }: Props) => {
       {!!vm.movePointerParams && <MoveIndicator startPoint={vm.movePointerParams.startPoint} endPoint={vm.movePointerParams.endPoint} />}
       <div className={`controlPanel${vm.menuIsOpen ? " opened" : ""}`}>
         <div className='boardSizeBtns'>
-          <button className='boardSizeBtn' onClick={vm.shrinkBoard}>
+          <button className='boardSizeBtn' onClick={() => vm.changeBoardSize(-1)}>
             -
           </button>
           <span>Размер доски: {vm.boardSize}</span>
-          <button className='boardSizeBtn' onClick={vm.extendBoard}>
+          <button className='boardSizeBtn' onClick={() => vm.changeBoardSize(1)}>
             +
           </button>
         </div>
@@ -184,17 +184,21 @@ const BoardModel = observer(({ viewModel }: Props) => {
         <button onClick={vm.toggleFreeMode}>{!vm.freeMode ? "Режим свободных ходов" : "Режим строгих ходов"}</button>
 
         {vm.constraintGamemode === constraintGamemodes.regular ? (
-          <button onClick={vm.enterLimitedMovesGamemode}>Ограниченные ходы</button>
+          <button onClick={() => vm.toggleConstraintGamemode(constraintGamemodes.moves)}>Ограниченные ходы</button>
         ) : null}
 
         {vm.constraintGamemode === constraintGamemodes.regular ? (
-          <button onClick={vm.enterLimitedTimeGamemode}>Ограниченное время</button>
+          <button onClick={() => vm.toggleConstraintGamemode(constraintGamemodes.time)}>Ограниченное время</button>
         ) : null}
 
-        {vm.constraintGamemode === constraintGamemodes.regular ? <button onClick={vm.enterMultiplayer}>Два игрока</button> : null}
-        {vm.constraintGamemode === constraintGamemodes.regular ? <button onClick={vm.enterBotMode}>Игра против бота</button> : null}
+        {vm.constraintGamemode === constraintGamemodes.regular ? (
+          <button onClick={() => vm.toggleConstraintGamemode(constraintGamemodes.multiplayer)}>Два игрока</button>
+        ) : null}
+        {vm.constraintGamemode === constraintGamemodes.regular ? (
+          <button onClick={() => vm.toggleConstraintGamemode(constraintGamemodes.bot)}>Игра против бота</button>
+        ) : null}
         {vm.constraintGamemode !== constraintGamemodes.regular ? (
-          <button onClick={vm.enterRegularMode}>
+          <button onClick={() => vm.toggleConstraintGamemode(constraintGamemodes.regular)}>
             {vm.constraintGamemode === constraintGamemodes.multiplayer ? "Один игрок" : "Обычный режим"}
           </button>
         ) : null}
@@ -217,7 +221,7 @@ const BoardModel = observer(({ viewModel }: Props) => {
         <button onClick={vm.toggleDifferentValueMode}>
           {!vm.differentValueMode ? "Ценность фишек: режим разной ценности" : "Ценность фишек: обычный режим"}
         </button>
-        <button onClick={vm.toggledebugMode}>{!vm.debugMode ? "Режим отладки" : "Обычный режим"}</button>
+        <button onClick={vm.toggleDebugMode}>{!vm.debugMode ? "Режим отладки" : "Обычный режим"}</button>
         <span style={{ display: "none" }}>Ага, думаешь, так просто? Введи пароль . Попался! Ищешь пароль? Страждущий да обрящет</span>
       </div>
       <div className='game'>
