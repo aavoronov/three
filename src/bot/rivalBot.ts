@@ -390,8 +390,8 @@ export class RivalBot {
 
   private commitMove(move: Move) {
     console.log(move);
-    // if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
-    // this.vm.swapPieces(move.index, move.index + move.by);
+    if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
+    this.vm.swapPieces(move.index, move.index + move.by);
   }
 
   private usePerkInstead() {
