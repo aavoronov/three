@@ -6,42 +6,42 @@ export class MovesCollection {
     this._b = boardSize;
   }
 
-  private _b: number;
+  private readonly _b: number;
 
-  private _moves: Move[] = [];
+  private readonly _moves: Move[] = [];
 
-  private findMove(index: number, direction: Direction) {
-    return this._moves.find((item) => item.index === index && item.direction === direction);
-  }
+  // private findMove(index: number, direction: Direction) {
+  //   return this._moves.find((item) => item.index === index && item.direction === direction);
+  // }
 
-  private counterpartExists(move: Move): boolean {
-    const { index, direction } = move;
+  // private counterpartExists(move: Move): boolean {
+  //   const { index, direction } = move;
 
-    let to: number;
-    switch (direction) {
-      case "right":
-        to = index + 1;
-        break;
-      case "left":
-        to = index - 1;
-        break;
-      case "upwards":
-        to = index - this._b;
-        break;
-      case "downwards":
-        to = index + this._b;
-        break;
-    }
+  //   let to: number;
+  //   switch (direction) {
+  //     case "right":
+  //       to = index + 1;
+  //       break;
+  //     case "left":
+  //       to = index - 1;
+  //       break;
+  //     case "upwards":
+  //       to = index - this._b;
+  //       break;
+  //     case "downwards":
+  //       to = index + this._b;
+  //       break;
+  //   }
 
-    if (this.findMove(to, counterpartMoves[direction])) return true;
+  //   if (this.findMove(to, counterpartMoves[direction])) return true;
 
-    return false;
-  }
+  //   return false;
+  // }
 
   add(move: Move) {
-    if (this.counterpartExists(move)) {
-      return;
-    }
+    // if (this.counterpartExists(move)) {
+    //   return;
+    // }
     this._moves.push(move);
   }
 

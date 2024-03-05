@@ -44,6 +44,10 @@ export const counterpartMoves = {
 } as const;
 
 export const priority = {
+  highest: 13,
+  lightningExtraMove: 12,
+  bombExtraMove: 11,
+  arrowExtraMove: 10,
   lightningCreation: 9,
   bombCreation: 8,
   arrowCreation: 7,

@@ -38,16 +38,16 @@ export class BoardViewModel {
       count2: observable,
       turn: observable,
       roundNumber: observable,
-      perksUsedBlue: observable,
-      perksUsedRed: observable,
+      perksUsedBlue: observable.shallow,
+      perksUsedRed: observable.shallow,
       hammerMode: observable,
       botDifficulty: observable,
       extraMoveAwarded: observable,
-      lightningsParams: observable,
-      movePointerParams: observable,
+      lightningsParams: observable.ref,
+      movePointerParams: observable.ref,
       boardStabilized: observable,
       currentPieces: observable,
-      classes: observable.ref,
+      classes: observable.shallow,
 
       botDifficultyModeText: computed,
       constraintModeText: computed,
@@ -66,13 +66,10 @@ export class BoardViewModel {
       changeBotDifficulty: action,
       toggleDifferentValueMode: action,
       toggleDebugMode: action,
-      // usePerk: action,
       breakPieceInHammerMode: action,
       dragStart: action,
-      // dragDrop: action,
       dragEnd: action,
       swipeStart: action,
-      // swipeEnd: action,
 
       classesInRandomOrder: action,
       recursivelyDropColumn: action,
@@ -94,14 +91,7 @@ export class BoardViewModel {
       checkForColumnsOfThree: action,
       tryAutoPassMove: action,
       resetEverything: action,
-      resetBoardStateUpdate: action,
     });
-
-    //setters
-    // currentPieces
-    // classes
-
-    //actions
   }
 
   //#endregion
@@ -111,7 +101,7 @@ export class BoardViewModel {
   private readonly _redColor = "#e74c3c";
   private readonly _neutralColor = "white";
   private readonly _lightningExplodePower = 12;
-
+  private readonly _roundsCount = 5;
   private _paramsHaveChanged = false;
 
   private indices = new Set<number>();
@@ -129,7 +119,7 @@ export class BoardViewModel {
   classes: ClassRegular[] = classesRegular;
   currentPieces: string[] = [];
   boardSize = 8;
-  readonly roundsCount = 5;
+
   colorGamemode: ColorGamemode = colorGamemodes.regular;
   freeMode = false;
   constraintGamemode: ConstraintGamemode = constraintGamemodes.regular;
@@ -208,7 +198,7 @@ export class BoardViewModel {
   get multiplayerText() {
     return this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot
       ? {
-          startText: `Раунд ${this.roundNumber}/${this.roundsCount}. Очередь: `,
+          startText: `Раунд ${this.roundNumber}/${this._roundsCount}. Очередь: `,
           currentColor: this.turn === 1 ? { code: this._blueColor, name: "синий" } : { code: this._redColor, name: "красный" },
           endText: `Осталось ходов: ${this.movesLeft}.`,
         }
@@ -506,6 +496,24 @@ export class BoardViewModel {
     this.recursivelyDropColumn();
   }
 
+  resetBoardStateUpdate() {
+    // console.log("timer reset");
+    runInAction(() => (this.boardStabilized = false));
+    //clear timeout if already applied
+    if (this.boardResetTimeout) {
+      clearTimeout(this.boardResetTimeout);
+      this.boardResetTimeout = null;
+    }
+    //set new timeout
+    this.boardResetTimeout = setTimeout(() => {
+      //do stuff and clear timeout
+      this.endMove();
+      // console.log("stabilized");
+      clearTimeout(this.boardResetTimeout);
+      this.boardResetTimeout = null;
+    }, 1000);
+  }
+
   calculatePerksClassNames(perk: Perk, color: 1 | 2) {
     //maybe later: || this.perksUsedBlue.length === 3
 
@@ -731,7 +739,7 @@ export class BoardViewModel {
       ((this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
         this.movesLeft === 0 &&
         this.turn === 2 &&
-        this.roundNumber === this.roundsCount &&
+        this.roundNumber === this._roundsCount &&
         this.boardStabilized)
     ) {
       runInAction(() => (this.gameOver = true));
@@ -1010,16 +1018,14 @@ export class BoardViewModel {
       .filter((item) => item !== "lightning")
       .join(" ");
 
-    new Promise<void>((res) => {
-      setTimeout(() => res(), 600);
-    }).then(() => {
+    setTimeout(() => {
       shuffledSlice.forEach((item) => {
         this.indices.add(item);
         item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       });
       runInAction(() => (this.lightningsParams = null));
       // console.log(shuffledSlice);
-    });
+    }, 600);
   }
 
   explodeSpecials(item: number) {
@@ -1402,7 +1408,7 @@ export class BoardViewModel {
     if (this.movesLeft !== 0 || this.gameOver) return;
 
     this.movesLeft = 3;
-    if (this.turn === 2 && this.roundNumber < this.roundsCount) {
+    if (this.turn === 2 && this.roundNumber < this._roundsCount) {
       this.turn = 1;
       this.roundNumber++;
     } else if (this.turn === 1) {
@@ -1480,24 +1486,6 @@ export class BoardViewModel {
   private getPiecesColor(index: number) {
     const classList = document.querySelector(`[data-key='${index}']`).classList;
     return _colors[classList[1]];
-  }
-
-  resetBoardStateUpdate() {
-    // console.log("timer reset");
-    this.boardStabilized = false;
-    //clear timeout if already applied
-    if (this.boardResetTimeout) {
-      clearTimeout(this.boardResetTimeout);
-      this.boardResetTimeout = null;
-    }
-    //set new timeout
-    this.boardResetTimeout = setTimeout(() => {
-      //do stuff and clear timeout
-      this.endMove();
-      // console.log("stabilized");
-      clearTimeout(this.boardResetTimeout);
-      this.boardResetTimeout = null;
-    }, 1000);
   }
 
   //#endregion

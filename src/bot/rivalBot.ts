@@ -33,8 +33,8 @@ export class RivalBot {
 
   //#region fields
 
-  private readonly rollThresholds = [100, 300, 500];
-  private readonly perkUseProbabilities = [0.05, 0.1, 0.15];
+  private readonly rollThresholds = [700, 300, 0];
+  private readonly perkUseProbabilities = [0.1, 0.15, 0.2];
   private readonly perksAvailable = [perks.bomb, perks.shuffle];
 
   private readonly minMoveDelay = 1000;
@@ -55,7 +55,7 @@ export class RivalBot {
     return Math.floor(Math.random() * (this.maxMoveDelay - this.minMoveDelay) + this.minMoveDelay);
   }
 
-  private checkForPossibleMoves(board: string[]) {
+  checkForPossibleMoves(board: string[]) {
     const b = this.vm.boardSize;
     const possiblePositionChanges = [
       { direction: "left", by: -1 },
@@ -75,23 +75,30 @@ export class RivalBot {
     };
 
     const formAMove = (
+      virtualBoard: string[],
       index: number,
       change: Change,
       currentType: ClassRegular | "mixed",
       move: number[],
       fallbackValue: number
     ): Omit<Move, "result" | "specials"> => {
-      const specials = move.filter((i) => board[i].includes("arrow") || board[i].includes("bomb") || board[i].includes("lightning"));
+      const specials = move.filter(
+        (i) => virtualBoard[i].includes("arrow") || virtualBoard[i].includes("bomb") || virtualBoard[i].includes("lightning")
+      );
       let value = fallbackValue;
-      // if (specials.length > 3) {
-      //   value = priority.do;
-      // } else
-      if (specials.length > 2) {
+
+      if (specials.length > 1 && value > priority.doubleSpecial) {
+        value = priority.highest;
+      } else if (specials.length === 1 && value > priority.doubleSpecial) {
+        if (value === priority.arrowCreation) value = priority.arrowExtraMove;
+        if (value === priority.bombCreation) value = priority.bombExtraMove;
+        if (value === priority.lightningCreation) value = priority.lightningExtraMove;
+      } else if (specials.length > 1) {
         value = priority.doubleSpecial;
       } else if (specials.length) {
-        if (board[specials[0]].includes("arrow")) value = priority.arrowExplosion;
-        if (board[specials[0]].includes("bomb")) value = priority.bombExplosion;
-        if (board[specials[0]].includes("lightning")) value = priority.lightningExplosion;
+        if (virtualBoard[specials[0]].includes("arrow")) value = priority.arrowExplosion;
+        if (virtualBoard[specials[0]].includes("bomb")) value = priority.bombExplosion;
+        if (virtualBoard[specials[0]].includes("lightning")) value = priority.lightningExplosion;
       }
 
       return {
@@ -149,10 +156,8 @@ export class RivalBot {
 
         if (maybePair.some((item) => !item)) return;
 
-        console.log("there is a move");
-
         possibleMoves.add({
-          ...formAMove(i, change, "mixed", [i + change.by], priority.doubleSpecial),
+          ...formAMove(virtualBoard, i, change, "mixed", [i + change.by], priority.doubleSpecial),
           result: `${i + change.by}: double special`,
         });
       }
@@ -174,25 +179,25 @@ export class RivalBot {
         if (currentType) {
           if (upperLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, upperLeft, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, upperLeft, priority.bombCreation),
               result: `${i}: bomb of ${currentType}`,
             });
           }
           if (lowerLeft.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, lowerLeft, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, lowerLeft, priority.bombCreation),
               result: `${i + 2 * b}: bomb of ${currentType}`,
             });
           }
           if (upperRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, upperRight, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, upperRight, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
           }
           if (lowerRight.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, lowerRight, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, lowerRight, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
           }
@@ -216,25 +221,25 @@ export class RivalBot {
         if (currentType) {
           if (upper.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, upper, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, upper, priority.bombCreation),
               result: `${i + 1}: bomb of ${currentType}`,
             });
           }
           if (left.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, left, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, left, priority.bombCreation),
               result: `${i + b}: bomb of ${currentType}`,
             });
           }
           if (lower.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, lower, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, lower, priority.bombCreation),
               result: `${i + 1}: bomb of ${currentType}`,
             });
           }
           if (right.every((piece) => toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, right, priority.bombCreation),
+              ...formAMove(virtualBoard, index, change, currentType, right, priority.bombCreation),
               result: `${i + 2}: bomb of ${currentType}`,
             });
           }
@@ -256,7 +261,7 @@ export class RivalBot {
           ) {
             possibleMoves.add({
               result: `${i}: row of five of ${currentType}`,
-              ...formAMove(index, change, currentType, rowOfFive, priority.lightningCreation),
+              ...formAMove(virtualBoard, index, change, currentType, rowOfFive, priority.lightningCreation),
             });
             // break;
           }
@@ -264,7 +269,7 @@ export class RivalBot {
             rowOfFour.every((piece) => i % b <= (i + 3) % b && toCheck.includes(piece) && virtualBoard[piece].split(" ")[0] === currentType)
           ) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, rowOfFour, priority.arrowCreation),
+              ...formAMove(virtualBoard, index, change, currentType, rowOfFour, priority.arrowCreation),
               result: `${i}: row of four of ${currentType}`,
             });
             // break;
@@ -275,7 +280,7 @@ export class RivalBot {
             )
           ) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, rowOfThree, priority.default),
+              ...formAMove(virtualBoard, index, change, currentType, rowOfThree, priority.default),
               result: `${i}: row of three of ${currentType}`,
             });
           }
@@ -298,7 +303,7 @@ export class RivalBot {
             )
           ) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, columnOfFive, priority.lightningCreation),
+              ...formAMove(virtualBoard, index, change, currentType, columnOfFive, priority.lightningCreation),
               result: `${i}: column of five of ${currentType}`,
             });
             // break;
@@ -309,7 +314,7 @@ export class RivalBot {
             )
           ) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, columnOfFour, priority.arrowCreation),
+              ...formAMove(virtualBoard, index, change, currentType, columnOfFour, priority.arrowCreation),
               result: `${i}: column of four of ${currentType}`,
             });
             // break;
@@ -320,7 +325,7 @@ export class RivalBot {
             )
           ) {
             possibleMoves.add({
-              ...formAMove(index, change, currentType, columnOfThree, priority.default),
+              ...formAMove(virtualBoard, index, change, currentType, columnOfThree, priority.default),
               result: `${i}: column of three of ${currentType}`,
             });
           }
@@ -384,8 +389,9 @@ export class RivalBot {
   }
 
   private commitMove(move: Move) {
-    if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
-    this.vm.swapPieces(move.index, move.index + move.by);
+    console.log(move);
+    // if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
+    // this.vm.swapPieces(move.index, move.index + move.by);
   }
 
   private usePerkInstead() {
@@ -403,8 +409,14 @@ export class RivalBot {
     const rollForPerkUse = Math.random();
 
     const delay = this.getMoveDelay();
+    const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
+    const range = this.rangePossibleMoves(possibleMoves);
 
-    if (rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty] && this.vm.perksUsedRed.length < this.perksAvailable.length) {
+    if (
+      rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty] &&
+      this.vm.perksUsedRed.length < this.perksAvailable.length &&
+      range[0] < priority.arrowExplosion
+    ) {
       new Promise<void>((res) => {
         setTimeout(() => res(), delay);
       }).then(() => {
@@ -412,8 +424,6 @@ export class RivalBot {
         return;
       });
     } else {
-      const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
-      const range = this.rangePossibleMoves(possibleMoves);
       const moveValue = this.rollForMoveValue(range);
       const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
 
@@ -425,6 +435,15 @@ export class RivalBot {
       });
     }
   }
+
+  // makeMove() {
+  //   const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
+  //   const range = this.rangePossibleMoves(possibleMoves);
+  //   const moveValue = this.rollForMoveValue(range);
+  //   const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
+
+  //   this.commitMove(move);
+  // }
 
   //#endregion
 }
