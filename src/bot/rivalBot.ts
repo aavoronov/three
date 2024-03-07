@@ -66,7 +66,7 @@ export class RivalBot {
 
     type Change = (typeof possiblePositionChanges)[number];
 
-    let possibleMoves = new MovesCollection(b);
+    let possibleMoves = new MovesCollection();
 
     const virtuallySwapPieces = (virtualBoard: string[], index: number, index2: number) => {
       let temp = virtualBoard[index];

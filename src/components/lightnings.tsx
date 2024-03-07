@@ -28,9 +28,11 @@ const LightningsLayer = ({ startPoint, endPoints, color }: Props) => {
   const [intermediatePoints, setIntermediatePoints] = useState<string[]>([]);
 
   useEffect(() => {
-    setInterval(() => {
+    const t = setInterval(() => {
       setIntermediatePoints(getDistortedPoints());
     }, 50);
+
+    return () => clearInterval(t);
   }, []);
 
   const lineProjections: LineParams[] = endPoints.map((point, i) => {

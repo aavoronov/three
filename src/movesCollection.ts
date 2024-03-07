@@ -2,11 +2,11 @@ import { counterpartMoves, priority } from "./constants";
 import { Direction, Move } from "./types";
 
 export class MovesCollection {
-  constructor(boardSize: number) {
-    this._b = boardSize;
-  }
+  // constructor(boardSize: number) {
+  //   this._b = boardSize;
+  // }
 
-  private readonly _b: number;
+  // private readonly _b: number;
 
   private readonly _moves: Move[] = [];
 
