@@ -1,5 +1,3 @@
-"use client";
-
 import { BoardViewModel } from "../src/board/boardViewModel";
 import BoardModel from "../src/board/board";
 

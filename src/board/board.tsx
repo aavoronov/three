@@ -27,7 +27,8 @@
 //fixed сложность бота, вероятно, обратно пропорциональна заданной
 //fixed более гибкий расчет предпочтительного хода для бота
 //done бот сложного уровня всегда предпочитает лучший ход
-//! бот уходит в минус по оставшимся ходам
+// TODO научить бота считать ценность хода в режиме разной ценности
+//fixed бот уходит в минус по оставшимся ходам
 //done научить бота делать двойные ходы спецфишками
 //done изменить приоритет ходов у бота в пользу экстра мувов
 //done указатель для двойных спецфишечных ходов
@@ -283,7 +284,7 @@ const BoardModel = observer(({ vm }: Props) => {
         <div
           className={`board${vm.hammerMode ? " hammerMode" : ""}${!vm.boardStabilized ? " locked" : ""}`}
           // ref={board}
-          onClick={(event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+          onClick={(event: React.MouseEvent) => {
             vm.breakPieceInHammerMode(event);
             if (!vm.debugMode) return;
 

@@ -68,12 +68,3 @@ export type ConstraintGamemode = keyof typeof constraintGamemodes;
 export type Perk = keyof typeof perks;
 
 export type Direction = "left" | "right" | "upwards" | "downwards";
-export interface Move {
-  key: string;
-  color: ClassRegular | "mixed";
-  direction: Direction;
-  index: number;
-  by: number;
-  value: number;
-  result: string;
-}

@@ -1,47 +1,25 @@
-import { counterpartMoves, priority } from "./constants";
-import { Direction, Move } from "./types";
+import { priority } from "./constants";
+import { Move } from "./types";
 
 export class MovesCollection {
-  // constructor(boardSize: number) {
-  //   this._b = boardSize;
-  // }
-
-  // private readonly _b: number;
+  //#region fields
 
   private readonly _moves: Move[] = [];
 
-  // private findMove(index: number, direction: Direction) {
-  //   return this._moves.find((item) => item.index === index && item.direction === direction);
-  // }
+  //#endregion
 
-  // private counterpartExists(move: Move): boolean {
-  //   const { index, direction } = move;
+  //#region props
 
-  //   let to: number;
-  //   switch (direction) {
-  //     case "right":
-  //       to = index + 1;
-  //       break;
-  //     case "left":
-  //       to = index - 1;
-  //       break;
-  //     case "upwards":
-  //       to = index - this._b;
-  //       break;
-  //     case "downwards":
-  //       to = index + this._b;
-  //       break;
-  //   }
+  get moves() {
+    this.deduplicate();
+    return this._moves;
+  }
 
-  //   if (this.findMove(to, counterpartMoves[direction])) return true;
+  //#endregion
 
-  //   return false;
-  // }
+  //#region methods
 
   add(move: Move) {
-    // if (this.counterpartExists(move)) {
-    //   return;
-    // }
     this._moves.push(move);
   }
 
@@ -54,7 +32,7 @@ export class MovesCollection {
       };
 
       const getIndicesForAMove = (key: string) => {
-        debugger;
+        // debugger;
         return this._moves.flatMap((move, i) => (move.key === key ? i : []));
       };
 
@@ -98,8 +76,5 @@ export class MovesCollection {
     Array.from(duplicateElements).forEach(combineOrPruneDuplicates);
   }
 
-  get moves() {
-    this.deduplicate();
-    return this._moves;
-  }
+  //#endregion
 }

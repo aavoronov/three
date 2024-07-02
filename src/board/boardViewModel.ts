@@ -12,6 +12,7 @@ import {
 import { ClassRegular, ColorGamemode, ConstraintGamemode, LightningsParams, MovePointerParams, Perk } from "../types";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
 import { HandledEvents } from "react-swipeable/es/types";
+import { MoveMap } from "../moveMap";
 
 export class BoardViewModel {
   //#region ctor
@@ -97,6 +98,7 @@ export class BoardViewModel {
   //#endregion
 
   //#region fields
+
   private readonly _blueColor = "#3498db";
   private readonly _redColor = "#e74c3c";
   private readonly _neutralColor = "white";
@@ -332,7 +334,7 @@ export class BoardViewModel {
     this.perkAction(perk);
   };
 
-  breakPieceInHammerMode = (e: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  breakPieceInHammerMode = (e: React.MouseEvent) => {
     if (!this.hammerMode) return;
     this.resetBoardStateUpdate();
     const index = parseInt((e.target as HTMLSpanElement).attributes["data-key"].value);
@@ -345,7 +347,7 @@ export class BoardViewModel {
     }
   };
 
-  dragStart = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  dragStart = (event: React.MouseEvent) => {
     if (!this.boardStabilized) return;
     if (this.gameOver || !this.movesLeft) return;
     if (!this.debugMode) return;
@@ -353,7 +355,7 @@ export class BoardViewModel {
     this.draggedPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
   };
 
-  dragDrop = (event: React.SyntheticEvent<HTMLSpanElement, MouseEvent>) => {
+  dragDrop = (event: React.MouseEvent) => {
     if (!this.draggedPiece) return;
 
     const targetPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
@@ -542,51 +544,9 @@ export class BoardViewModel {
         { direction: "downwards", by: +b },
       ] as const;
 
-      const counterpartMoves = {
-        left: "right",
-        right: "left",
-        upwards: "downwards",
-        downwards: "upwards",
-      } as const;
-
       type Change = (typeof possiblePositionChanges)[number];
 
-      class MoveMap extends Map<string, string> {
-        constructor() {
-          super();
-        }
-        counterpartExists(move: string): boolean {
-          const [index, direction] = move.split(":");
-          let counterpart: string;
-          switch (direction) {
-            case "right":
-              counterpart = `${parseInt(index) + 1}:${counterpartMoves.right}`;
-              break;
-            case "left":
-              counterpart = `${parseInt(index) - 1}:${counterpartMoves.left}`;
-              break;
-            case "upwards":
-              counterpart = `${parseInt(index) - b}:${counterpartMoves.upwards}`;
-              break;
-            case "downwards":
-              counterpart = `${parseInt(index) + b}:${counterpartMoves.downwards}`;
-              break;
-          }
-
-          if (this.get(counterpart)) return true;
-
-          return false;
-        }
-
-        set(key: string, value: string) {
-          if (this.counterpartExists(key)) {
-            return this;
-          }
-          return super.set(key, value);
-        }
-      }
-
-      let possibleMoves: MoveMap = new MoveMap();
+      let possibleMoves: MoveMap = new MoveMap(b);
 
       const virtuallySwapPieces = (virtualBoard: string[], index: number, index2: number) => {
         let temp = virtualBoard[index];

@@ -8,7 +8,7 @@ export class RivalBot {
   //#region ctor
 
   private constructor(private readonly vm: BoardViewModel) {
-    console.log("bot instantiated");
+    // console.log("bot instantiated");
 
     reaction(
       () => [this.botIsActive, this.canMove],
@@ -20,9 +20,14 @@ export class RivalBot {
     );
   }
 
+  //#endregion
+
+  //#region instance
+
   private static _instance: RivalBot;
+
   static getInstance(vm: BoardViewModel): RivalBot {
-    console.log("bot instance requested");
+    // console.log("bot instance requested");
     if (!RivalBot._instance) {
       RivalBot._instance = new RivalBot(vm);
     }
@@ -81,7 +86,7 @@ export class RivalBot {
       currentType: ClassRegular | "mixed",
       move: number[],
       fallbackValue: number
-    ): Omit<Move, "result" | "specials"> => {
+    ): Omit<Move, "result"> => {
       const specials = move.filter(
         (i) => virtualBoard[i].includes("arrow") || virtualBoard[i].includes("bomb") || virtualBoard[i].includes("lightning")
       );
@@ -352,8 +357,8 @@ export class RivalBot {
       }
     }
 
-    console.log(possibleMoves.moves);
-    debugger;
+    // console.log(possibleMoves.moves);
+    // debugger;
     return possibleMoves.moves;
   }
 
@@ -389,7 +394,7 @@ export class RivalBot {
   }
 
   private commitMove(move: Move) {
-    console.log(move);
+    // console.log(move);
     if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
     this.vm.swapPieces(move.index, move.index + move.by);
   }
@@ -415,8 +420,11 @@ export class RivalBot {
     if (
       rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty] &&
       this.vm.perksUsedRed.length < this.perksAvailable.length &&
-      range[0] < priority.arrowExplosion
+      parseInt(Object.keys(range).at(-1)) < priority.arrowExplosion
+      // this means if there is no possible move equal or better than an arrow explosion,
+      // only then the thing should proceed with using a perk
     ) {
+      //? why promises? unsure. timeouts display weird behavior
       new Promise<void>((res) => {
         setTimeout(() => res(), delay);
       }).then(() => {
@@ -435,15 +443,6 @@ export class RivalBot {
       });
     }
   }
-
-  // makeMove() {
-  //   const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
-  //   const range = this.rangePossibleMoves(possibleMoves);
-  //   const moveValue = this.rollForMoveValue(range);
-  //   const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
-
-  //   this.commitMove(move);
-  // }
 
   //#endregion
 }
