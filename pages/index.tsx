@@ -1,10 +1,10 @@
-import { BoardViewModel } from "../src/board/boardViewModel";
-import BoardModel from "../src/board/board";
+import { GameViewModel } from "../src/game/gameViewModel";
+import Board from "../src/components/board";
 
-const Board = () => {
-  const viewModel = new BoardViewModel();
+const App = () => {
+  const viewModel = new GameViewModel();
 
-  return <BoardModel vm={viewModel} />;
+  return <Board vm={viewModel} />;
 };
 
-export default Board;
+export default App;
