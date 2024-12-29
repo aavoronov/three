@@ -1,356 +1,60 @@
 import { action, computed, makeAutoObservable, makeObservable, observable, runInAction } from "mobx";
-import {
-  _classesSpecial,
-  classesRegular,
-  colorGamemodes,
-  constraintGamemodes,
-  perks,
-  _colors,
-  classesSpecial,
-  Direction,
-} from "../constants";
-import { ClassRegular, ColorGamemode, ConstraintGamemode, LightningsParams, MovePointerParams, Perk } from "../types";
 import { SwipeDirections, SwipeEventData } from "react-swipeable";
 import { HandledEvents } from "react-swipeable/es/types";
-import { MoveMap } from "../moveMap";
+import {
+  _classesSpecial,
+  _colors,
+  classesRegular,
+  classesSpecial,
+  colorGamemodes,
+  constraintGamemodes,
+  lightningExplodePower,
+  roundsCount,
+} from "../utils/constants";
+import { MoveMap } from "../utils/moveMap";
+import { ClassRegular, Direction } from "../utils/types";
+import { GameViewModel } from "./gameViewModel";
+import { Helpers } from "../utils/helpers";
+import { UIManager } from "./uiManager";
+import { VitalsManager } from "./vitalsManager";
 
 export class BoardViewModel {
   //#region ctor
 
-  constructor() {
-    // makeAutoObservable(this);
-
-    makeObservable(this, {
-      boardSize: observable,
-      colorGamemode: observable,
-      freeMode: observable,
-      constraintGamemode: observable,
-      differentValueMode: observable,
-      debugMode: observable,
-      modeHasChanged: observable,
-      gameOver: observable,
-      menuIsOpen: observable,
-      draggedPiece: observable,
-      movesMade: observable,
-      movesLeft: observable,
-      timeElapsed: observable,
-      timeLeft: observable,
-      count: observable,
-      count2: observable,
-      turn: observable,
-      roundNumber: observable,
-      perksUsedBlue: observable.shallow,
-      perksUsedRed: observable.shallow,
-      hammerMode: observable,
-      botDifficulty: observable,
-      extraMoveAwarded: observable,
-      lightningsParams: observable.ref,
-      movePointerParams: observable.ref,
-      boardStabilized: observable,
-      currentPieces: observable,
-      classes: observable.shallow,
-
-      botDifficultyModeText: computed,
-      constraintModeText: computed,
-      modeText: computed,
-      multiplayerText: computed,
-      singleplayerScore: computed,
-      multiplayerScore: computed,
-      time: computed,
-      winner: computed,
-
-      toggleMenu: action,
-      changeBoardSize: action,
-      toggleColorGamemode: action,
-      toggleFreeMode: action,
-      toggleConstraintGamemode: action,
-      changeBotDifficulty: action,
-      toggleDifferentValueMode: action,
-      toggleDebugMode: action,
-      breakPieceInHammerMode: action,
-      dragStart: action,
-      dragEnd: action,
-      swipeStart: action,
-
-      classesInRandomOrder: action,
-      recursivelyDropColumn: action,
-      countMadeMove: action,
-      doubleSpecialPieceMove: action,
-      perkAction: action,
-      arrowHorizontalExplode: action,
-      arrowVerticalExplode: action,
-      bombExplode: action,
-      lightningExplode: action,
-      removeAllIndices: action,
-      checkForCorners: action,
-      checkForTsAndPluses: action,
-      checkForRowsOfFive: action,
-      checkForRowsOfFour: action,
-      checkForRowsOfThree: action,
-      checkForColumnsOfFive: action,
-      checkForColumnsOfFour: action,
-      checkForColumnsOfThree: action,
-      tryAutoPassMove: action,
-      resetEverything: action,
-    });
+  constructor(private readonly _game: GameViewModel, private readonly _vitals: VitalsManager, public ui: UIManager) {
+    makeAutoObservable(this);
   }
 
   //#endregion
 
   //#region fields
 
-  private readonly _blueColor = "#3498db";
-  private readonly _redColor = "#e74c3c";
-  private readonly _neutralColor = "white";
-  private readonly _lightningExplodePower = 12;
-  private readonly _roundsCount = 5;
-  private _paramsHaveChanged = false;
+  private _boardResetTimeout: NodeJS.Timeout | undefined;
 
-  private indices = new Set<number>();
-  private arrowsVertical = new Set<number>();
-  private arrowsHorizontal = new Set<number>();
-  private bombs = new Set<number>();
-  private lightnings = new Set<number>();
-
-  private boardResetTimeout: NodeJS.Timeout | undefined;
+  indices = new Set<number>();
+  private _arrowsVertical = new Set<number>();
+  private _arrowsHorizontal = new Set<number>();
+  private _bombs = new Set<number>();
+  private _lightnings = new Set<number>();
 
   //#endregion
 
-  //#region props
-
   classes: ClassRegular[] = classesRegular;
+
   currentPieces: string[] = [];
+
   boardSize = 8;
-
-  colorGamemode: ColorGamemode = colorGamemodes.regular;
-  freeMode = false;
-  constraintGamemode: ConstraintGamemode = constraintGamemodes.regular;
-  differentValueMode = false;
-  debugMode = false;
-  modeHasChanged = false;
-  gameOver = false;
-  menuIsOpen = false;
+  boardStabilized = true;
   draggedPiece: number | null = null;
-
-  movesMade = 0;
-  movesLeft = 20;
-  timeElapsed = 0;
-  timeLeft = 180;
-  count = 0;
-  count2 = 0;
-  turn: 1 | 2 = 1;
-  roundNumber = 1;
-  perksUsedBlue: Perk[] = [];
-  perksUsedRed: Perk[] = [];
-  hammerMode = false;
-  botDifficulty: 0 | 1 | 2 = 0;
 
   extraMoveAwarded = false;
 
-  lightningsParams: LightningsParams | null = null;
-  movePointerParams: MovePointerParams | null = null;
-
-  boardStabilized = true;
-
-  get botDifficultyModeText() {
-    let difficulty: string;
-    switch (this.botDifficulty) {
-      case 0:
-        difficulty = "низкая";
-        break;
-      case 1:
-        difficulty = "средняя";
-        break;
-      case 2:
-        difficulty = "высокая";
-    }
-    return `сложность: ${difficulty}`;
-  }
-
-  get constraintModeText() {
-    let text: string;
-    switch (this.constraintGamemode) {
-      case constraintGamemodes.moves:
-        text = ", ограниченные ходы";
-        break;
-      case constraintGamemodes.time:
-        text = ", ограниченное время";
-        break;
-      case constraintGamemodes.multiplayer:
-        text = ", два игрока";
-        break;
-      case constraintGamemodes.bot:
-        text = `, игра против бота, ${this.botDifficultyModeText}`;
-        break;
-      default:
-        text = ", бесконечный режим";
-    }
-    return text;
-  }
-
-  get modeText() {
-    return `Режим: ${
-      this.colorGamemode === colorGamemodes.regular ? "шесть цветов" : this.colorGamemode === colorGamemodes.fiveColors ? "пять цветов" : ""
-    }${this.debugMode ? ", отладка" : ""}${this.freeMode ? ", свободные ходы" : ""}${this.constraintModeText}${
-      this.differentValueMode ? ", разная ценность" : ""
-    }
-    `;
-  }
-
-  get multiplayerText() {
-    return this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot
-      ? {
-          startText: `Раунд ${this.roundNumber}/${this._roundsCount}. Очередь: `,
-          currentColor: this.turn === 1 ? { code: this._blueColor, name: "синий" } : { code: this._redColor, name: "красный" },
-          endText: `Осталось ходов: ${this.movesLeft}.`,
-        }
-      : "";
-  }
-
-  get singleplayerScore() {
-    return `Счет: ${this.count}${this.count > 1000 ? ". Сумасшедший!" : ""}`;
-  }
-
-  get multiplayerScore() {
-    return {
-      blue: {
-        score: this.count,
-        color: this.turn === 1 ? this._blueColor : this._neutralColor,
-      },
-      red: {
-        score: this.count2,
-        color: this.turn === 2 ? this._redColor : this._neutralColor,
-      },
-    };
-  }
-
-  get time() {
-    if (this.constraintGamemode !== constraintGamemodes.time) {
-      return `Время: ${this.timeElapsed >= 3600 ? Math.floor(this.timeElapsed / 3600) + ":" : ""}${
-        this.timeElapsed % 3600 < 600 ? 0 : ""
-      }${Math.floor((this.timeElapsed % 3600) / 60)}:${this.timeElapsed % 60 < 10 ? 0 : ""}${this.timeElapsed % 60}${
-        this.timeElapsed > 3600 ? ". Безумец!" : ""
-      }`;
-    } else if (!this.gameOver) {
-      return `Осталось времени: 0${Math.floor(this.timeLeft / 60)}:${this.timeLeft % 60 < 10 ? 0 : ""}${this.timeLeft % 60}`;
-    }
-    return "Время вышло!";
-  }
-
-  get winner() {
-    if (!this.gameOver) return;
-
-    if (this.count > this.count2) return { color: this._blueColor, text: "Победитель: синий!" };
-    else if (this.count2 === 0) return { color: this._neutralColor, text: "Вы вообще пытались?" };
-    else if (this.count === this.count2) return { color: this._neutralColor, text: "Ничья!" };
-    return { color: this._redColor, text: "Победитель: красный!" };
-  }
-
-  //#endregion
-
-  //#region event handlers
-
-  maybePromptUser = () => {
-    return this._paramsHaveChanged || confirm("Изменить параметры игры? Счет будет обнулен");
-  };
-
-  toggleMenu = () => {
-    this.menuIsOpen = !this.menuIsOpen;
-  };
-
-  changeBoardSize = (by: -1 | 1) => {
-    if ((this.boardSize <= 5 && by === -1) || (this.boardSize >= 12 && by === 1)) return;
-    if (this.maybePromptUser()) {
-      this.boardSize = this.boardSize + by;
-      this.resetEverything();
-    }
-  };
-
-  toggleColorGamemode = () => {
-    if (this.maybePromptUser()) {
-      this.colorGamemode = this.colorGamemode === colorGamemodes.regular ? colorGamemodes.fiveColors : colorGamemodes.regular;
-      this.resetEverything();
-    }
-  };
-
-  toggleFreeMode = () => {
-    if (this.maybePromptUser()) {
-      this.freeMode = !this.freeMode;
-      this.resetEverything();
-    }
-  };
-
-  toggleConstraintGamemode = (gamemode: ConstraintGamemode) => {
-    if (this.maybePromptUser()) {
-      this.constraintGamemode = gamemode;
-      this.resetEverything();
-    }
-  };
-
-  changeBotDifficulty = (value: 0 | 1 | 2) => {
-    if (this.maybePromptUser()) {
-      this.botDifficulty = value;
-      this.resetEverything();
-    }
-  };
-
-  toggleDifferentValueMode = () => {
-    if (this.maybePromptUser()) {
-      this.differentValueMode = !this.differentValueMode;
-      this.resetEverything();
-    }
-  };
-
-  toggleDebugMode = () => {
-    if (this.debugMode || prompt("Ага, думаешь, так просто? Введи пароль") === "adm") {
-      //да, я знаю, что его здесь видно, но много ли кто сюда полезет, кроме тебя?
-      this.debugMode = !this.debugMode;
-      this.gameOver = false;
-    }
-  };
-
-  usePerk = (perk: Perk, turn: "blue" | "red") => {
-    let perksUsed: Perk[] = [];
-
-    if (!this.boardStabilized) return;
-    const wrongTurn = (this.turn === 1 && turn === "red") || (this.turn === 2 && turn === "blue");
-
-    if (wrongTurn) return;
-
-    if (this.turn === 1) {
-      perksUsed = this.perksUsedBlue;
-    } else {
-      perksUsed = this.perksUsedRed;
-    }
-
-    const perkUsed = perksUsed.includes(perk);
-    const outOfMoves = this.movesLeft === 0;
-
-    if ((perkUsed || perksUsed.length >= 3 || outOfMoves) && !this.debugMode) return;
-
-    if (perk === perks.bomb || perk === perks.shuffle) {
-      this.resetBoardStateUpdate();
-    }
-    this.perkAction(perk);
-  };
-
-  breakPieceInHammerMode = (e: React.MouseEvent) => {
-    if (!this.hammerMode) return;
-    this.resetBoardStateUpdate();
-    const index = parseInt((e.target as HTMLSpanElement).attributes["data-key"].value);
-    this.indices.add(index);
-    this.hammerMode = false;
-    if (this.turn === 1) {
-      this.perksUsedBlue.push(perks.hammer);
-    } else {
-      this.perksUsedRed.push(perks.hammer);
-    }
-  };
+  //#region events
 
   dragStart = (event: React.MouseEvent) => {
     if (!this.boardStabilized) return;
-    if (this.gameOver || !this.movesLeft) return;
-    if (!this.debugMode) return;
+    if (this._vitals.gameOver || !this._vitals.movesLeft) return;
+    if (!this._game.debugMode) return;
 
     this.draggedPiece = (event.target as HTMLSpanElement).attributes["data-key"].nodeValue;
   };
@@ -366,7 +70,7 @@ export class BoardViewModel {
       this.draggedPiece === targetPiece + this.boardSize ||
       this.draggedPiece === targetPiece - this.boardSize;
 
-    if (isCorrectMove || this.debugMode) {
+    if (isCorrectMove || this._game.debugMode) {
       let piecesToCheck = [...this.currentPieces];
       let temp = this.currentPieces[this.draggedPiece!];
       piecesToCheck[this.draggedPiece!] = this.currentPieces[targetPiece];
@@ -374,7 +78,12 @@ export class BoardViewModel {
 
       if (this.doubleSpecialPieceMove(this.draggedPiece, parseInt(targetPiece))) return;
 
-      if (this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode || this.debugMode) {
+      if (
+        this.checkForColumnsOfThree(piecesToCheck) ||
+        this.checkForRowsOfThree(piecesToCheck) ||
+        this._game.freeMode ||
+        this._game.debugMode
+      ) {
         this.swapPieces(this.draggedPiece!, targetPiece);
       }
     }
@@ -386,8 +95,8 @@ export class BoardViewModel {
 
   swipeStart = (event: HandledEvents) => {
     if (!this.boardStabilized) return;
-    if (this.gameOver || !this.movesLeft) return;
-    if (this.constraintGamemode === constraintGamemodes.bot && this.turn === 2) return;
+    if (this._vitals.gameOver || !this._vitals.movesLeft) return;
+    if (this._game.constraintGamemode === constraintGamemodes.bot && this._vitals.turn === 2) return;
 
     this.draggedPiece = parseInt((event.target as HTMLSpanElement).attributes["data-key"].nodeValue);
   };
@@ -464,7 +173,7 @@ export class BoardViewModel {
 
       if (this.doubleSpecialPieceMove(this.draggedPiece, targetPiece)) return;
 
-      if (!(this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this.freeMode)) {
+      if (!(this.checkForColumnsOfThree(piecesToCheck) || this.checkForRowsOfThree(piecesToCheck) || this._game.freeMode)) {
         swapPiecesBackAndForth(this.draggedPiece!, targetPiece, direction);
         return;
       }
@@ -472,10 +181,6 @@ export class BoardViewModel {
     }
 
     runInAction(() => (this.draggedPiece = null));
-  };
-
-  handleReplay = () => {
-    this.resetEverything();
   };
 
   //#endregion
@@ -498,43 +203,168 @@ export class BoardViewModel {
     this.recursivelyDropColumn();
   }
 
+  populateBoard() {
+    if (this._game.colorGamemode === colorGamemodes.regular) {
+      this.classes = [...classesRegular];
+    } else {
+      this.classes = Helpers.unbiasedShuffle([...classesRegular]).slice(0, 5);
+    }
+    this.classesInRandomOrder();
+
+    const rawPieces: ClassRegular[] = [];
+    for (let i = 0; i < this.boardSize * this.boardSize; i++) {
+      rawPieces.push(this.getRandomPiece());
+      while (
+        (i % this.boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) ||
+        (i > 2 * this.boardSize - 1 &&
+          rawPieces[i - this.boardSize] === rawPieces[i - 2 * this.boardSize] &&
+          rawPieces[i] === rawPieces[i - this.boardSize])
+      ) {
+        rawPieces[i] = this.getRandomPiece();
+      }
+    }
+    this.currentPieces = rawPieces;
+  }
+
+  swapPieces(index: number, index2: number) {
+    runInAction(() => {
+      this.ui.movePointerParams = {
+        startPoint: Helpers.getPiecesMiddle(index),
+        endPoint: Helpers.getPiecesMiddle(index2),
+      };
+    });
+    setTimeout(
+      () => {
+        let temp = this.currentPieces[index];
+        this.resetBoardStateUpdate();
+        runInAction(() => {
+          this.currentPieces[index] = this.currentPieces[index2];
+          this.currentPieces[index2] = temp;
+          this.ui.movePointerParams = null;
+        });
+        this.countMadeMove();
+      },
+      this._game.debugMode ? 0 : 400
+    );
+  }
+
+  doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
+    type SpecialType = (typeof classesSpecial)[number];
+    type MaybeSpecialsPair = [SpecialType | false, SpecialType | false];
+    type SpecialsPair = [SpecialType, SpecialType];
+
+    const getSpecialType = (index: number) => {
+      const piece = this.currentPieces[index];
+      for (const type of classesSpecial) {
+        if (piece.includes(type)) {
+          return type;
+        }
+      }
+
+      return false;
+    };
+
+    const equal = (a1: SpecialsPair, a2: SpecialsPair) => {
+      return a1[0] === a2[0] && a1[1] === a2[1];
+    };
+
+    const maybePair: MaybeSpecialsPair = [getSpecialType(draggedPiece), getSpecialType(targetPiece)];
+
+    if (maybePair.some((item) => !item)) return false;
+
+    const pair = maybePair as SpecialsPair;
+
+    const arrowRegex = /arrow(.*)/;
+    const pairTypeActions = (...pair: SpecialsPair) => {
+      if (
+        equal(pair, ["arrowHorizontal", "arrowHorizontal"]) ||
+        equal(pair, ["arrowHorizontal", "arrowVertical"]) ||
+        equal(pair, ["arrowVertical", "arrowHorizontal"]) ||
+        equal(pair, ["arrowVertical", "arrowVertical"])
+      ) {
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(arrowRegex, "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
+
+        this.resetBoardStateUpdate();
+        this.indices.add(draggedPiece);
+      } else if (equal(pair, ["bomb", "bomb"])) {
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace("bomb", "");
+
+        const i = targetPiece;
+        const b = this.boardSize;
+
+        const additionalPieces: (number | false)[] = ([] = []);
+        additionalPieces.push(
+          draggedPiece,
+          i - 2 - b >= 0 && i % b > 1 && i - 2 - b,
+          i - 1 - 2 * b >= 0 && i % b > 0 && i - 1 - 2 * b,
+          i - 2 + b < b * b && i % b > 1 && i - 2 + b,
+          i - 1 + 2 * b < b * b && i % b > 0 && i - 1 + 2 * b,
+          i + 2 - b >= 0 && i % b < b - 2 && i + 2 - b,
+          i + 1 - 2 * b >= 0 && i % b < b - 1 && i + 1 - 2 * b,
+          i + 2 + b < b * b && i % b < b - 2 && i + 2 + b,
+          i + 1 + 2 * b < b * b && i % b < b - 1 && i + 1 + 2 * b
+        );
+
+        this.resetBoardStateUpdate();
+        additionalPieces.filter((item): item is number => !!item).forEach((item) => this.indices.add(item));
+      } else {
+        //trivial cases
+        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(pair[0], "");
+        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(pair[1], `${pair[0]} ${pair[1]}`);
+        this.resetBoardStateUpdate();
+        this.indices.add(draggedPiece);
+      }
+    };
+
+    this.ui.movePointerParams = {
+      startPoint: Helpers.getPiecesMiddle(draggedPiece),
+      endPoint: Helpers.getPiecesMiddle(targetPiece),
+    };
+    setTimeout(
+      () => {
+        runInAction(() => {
+          pairTypeActions(...pair);
+
+          this.explodeSpecials(targetPiece);
+          this.countMadeMove();
+
+          this.ui.movePointerParams = null;
+        });
+      },
+      this._game.debugMode ? 0 : 400
+    );
+
+    return true;
+  }
+
   resetBoardStateUpdate() {
     // console.log("timer reset");
     runInAction(() => (this.boardStabilized = false));
     //clear timeout if already applied
-    if (this.boardResetTimeout) {
-      clearTimeout(this.boardResetTimeout);
-      this.boardResetTimeout = null;
+    if (this._boardResetTimeout) {
+      clearTimeout(this._boardResetTimeout);
+      this._boardResetTimeout = null;
     }
     //set new timeout
-    this.boardResetTimeout = setTimeout(() => {
+    this._boardResetTimeout = setTimeout(() => {
       //do stuff and clear timeout
       this.endMove();
       // console.log("stabilized");
-      clearTimeout(this.boardResetTimeout);
-      this.boardResetTimeout = null;
+      clearTimeout(this._boardResetTimeout);
+      this._boardResetTimeout = null;
     }, 1000);
   }
 
-  calculatePerksClassNames(perk: Perk, color: 1 | 2) {
-    //maybe later: || this.perksUsedBlue.length === 3
-
-    const colorModifier = color === 1 ? "blue" : "red";
-    const disabled = color !== this.turn || (this.constraintGamemode === constraintGamemodes.bot && color === 2) ? "disabled" : "";
-    const used = (color === 1 && this.perksUsedBlue.includes(perk)) || (color === 2 && this.perksUsedRed.includes(perk)) ? "used" : "";
-
-    return `perk ${colorModifier} ${perk} ${used} ${disabled}`;
-  }
-
-  getRandomPiece() {
+  private getRandomPiece() {
     return this.classes[Math.floor(Math.random() * this.classes.length)];
   }
 
-  classesInRandomOrder() {
-    this.classes = this.unbiasedShuffle(this.classes);
+  private classesInRandomOrder() {
+    runInAction(() => (this.classes = Helpers.unbiasedShuffle(this.classes)));
   }
 
-  tryShuffleBoard() {
+  private tryShuffleBoard() {
     const checkForPossibleMoves = (board: string[]) => {
       const b = this.boardSize;
       const possiblePositionChanges = [
@@ -662,51 +492,28 @@ export class BoardViewModel {
     let newBoard: string[];
 
     do {
-      newBoard = this.unbiasedShuffle(this.currentPieces);
+      newBoard = Helpers.unbiasedShuffle(this.currentPieces);
     } while (!!matchEncountered(newBoard));
 
     // console.log(newBoard);
     runInAction(() => (this.currentPieces = newBoard));
   }
 
-  populateBoard() {
-    if (this.colorGamemode === colorGamemodes.regular) {
-      this.classes = classesRegular;
-    } else {
-      this.classes = this.unbiasedShuffle(classesRegular).slice(0, 5);
-    }
-    this.classesInRandomOrder();
-
-    const rawPieces: ClassRegular[] = [];
-    for (let i = 0; i < this.boardSize * this.boardSize; i++) {
-      rawPieces.push(this.getRandomPiece());
-      while (
-        (i % this.boardSize > 1 && rawPieces[i - 1] === rawPieces[i - 2] && rawPieces[i] === rawPieces[i - 1]) ||
-        (i > 2 * this.boardSize - 1 &&
-          rawPieces[i - this.boardSize] === rawPieces[i - 2 * this.boardSize] &&
-          rawPieces[i] === rawPieces[i - this.boardSize])
-      ) {
-        rawPieces[i] = this.getRandomPiece();
-      }
-    }
-    runInAction(() => (this.currentPieces = rawPieces));
-  }
-
-  tryEndGame() {
+  private tryEndGame() {
     if (
-      (this.constraintGamemode === constraintGamemodes.time && this.timeLeft <= 0) ||
-      (this.constraintGamemode === constraintGamemodes.moves && this.movesLeft === 0) ||
-      ((this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
-        this.movesLeft === 0 &&
-        this.turn === 2 &&
-        this.roundNumber === this._roundsCount &&
+      (this._game.constraintGamemode === constraintGamemodes.time && this._vitals.timeLeft <= 0) ||
+      (this._game.constraintGamemode === constraintGamemodes.moves && this._vitals.movesLeft === 0) ||
+      ((this._game.constraintGamemode === constraintGamemodes.multiplayer || this._game.constraintGamemode === constraintGamemodes.bot) &&
+        this._vitals.movesLeft === 0 &&
+        this._vitals.turn === 2 &&
+        this._vitals.roundNumber === roundsCount &&
         this.boardStabilized)
     ) {
-      runInAction(() => (this.gameOver = true));
+      runInAction(() => (this._vitals.gameOver = true));
     }
   }
 
-  recursivelyDropColumn() {
+  private recursivelyDropColumn() {
     const dropAllAbove = (index: number) => {
       if (index > this.boardSize - 1) {
         this.currentPieces[index] = this.currentPieces[index - this.boardSize];
@@ -718,37 +525,20 @@ export class BoardViewModel {
 
     for (let i = 0; i < this.boardSize * this.boardSize; i++) {
       if (this.currentPieces[i] === "") {
-        dropAllAbove(i);
+        runInAction(() => dropAllAbove(i));
         this.resetBoardStateUpdate();
       }
     }
   }
 
-  countMadeMove() {
-    if (this.debugMode) return;
-    this.movesMade = this.movesMade + 1;
-    if (!this.movesMade) {
-      this.timeElapsed = 0;
-    }
-
-    if (!this.movesMade && this.constraintGamemode === constraintGamemodes.moves) {
-      this.movesLeft = 20;
-    }
-
-    if (!this.movesMade && this.constraintGamemode === constraintGamemodes.time) {
-      this.timeLeft = 180;
-    }
-
-    if (
-      this.constraintGamemode === constraintGamemodes.moves ||
-      this.constraintGamemode === constraintGamemodes.multiplayer ||
-      this.constraintGamemode === constraintGamemodes.bot
-    ) {
-      this.movesLeft--;
-    }
+  private awardExtraMove() {
+    runInAction(() => {
+      this.extraMoveAwarded = true;
+      this._vitals.movesLeft++;
+    });
   }
 
-  endMove() {
+  private endMove() {
     // console.log("stabilizing");
     runInAction(() => {
       this.boardStabilized = true;
@@ -759,145 +549,7 @@ export class BoardViewModel {
     this.tryShuffleBoard();
   }
 
-  swapPieces(index: number, index2: number) {
-    runInAction(() => {
-      this.movePointerParams = {
-        startPoint: this.getPiecesMiddle(index),
-        endPoint: this.getPiecesMiddle(index2),
-      };
-    });
-    setTimeout(
-      () => {
-        let temp = this.currentPieces[index];
-        this.resetBoardStateUpdate();
-        runInAction(() => {
-          this.currentPieces[index] = this.currentPieces[index2];
-          this.currentPieces[index2] = temp;
-          this.movePointerParams = null;
-        });
-        this.countMadeMove();
-      },
-      this.debugMode ? 0 : 400
-    );
-  }
-
-  doubleSpecialPieceMove(draggedPiece: number, targetPiece: number) {
-    type SpecialType = (typeof classesSpecial)[number];
-    type MaybeSpecialsPair = [SpecialType | false, SpecialType | false];
-    type SpecialsPair = [SpecialType, SpecialType];
-
-    const getSpecialType = (index: number) => {
-      const piece = this.currentPieces[index];
-      for (const type of classesSpecial) {
-        if (piece.includes(type)) {
-          return type;
-        }
-      }
-
-      return false;
-    };
-
-    const equal = (a1: SpecialsPair, a2: SpecialsPair) => {
-      return a1[0] === a2[0] && a1[1] === a2[1];
-    };
-
-    const maybePair: MaybeSpecialsPair = [getSpecialType(draggedPiece), getSpecialType(targetPiece)];
-
-    if (maybePair.some((item) => !item)) return false;
-
-    const pair = maybePair as SpecialsPair;
-
-    const arrowRegex = /arrow(.*)/;
-    const pairTypeActions = (...pair: SpecialsPair) => {
-      if (
-        equal(pair, ["arrowHorizontal", "arrowHorizontal"]) ||
-        equal(pair, ["arrowHorizontal", "arrowVertical"]) ||
-        equal(pair, ["arrowVertical", "arrowHorizontal"]) ||
-        equal(pair, ["arrowVertical", "arrowVertical"])
-      ) {
-        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(arrowRegex, "");
-        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(arrowRegex, "arrowVertical arrowHorizontal");
-
-        this.resetBoardStateUpdate();
-        this.indices.add(draggedPiece);
-      } else if (equal(pair, ["bomb", "bomb"])) {
-        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace("bomb", "");
-
-        const i = targetPiece;
-        const b = this.boardSize;
-
-        const additionalPieces: (number | false)[] = ([] = []);
-        additionalPieces.push(
-          draggedPiece,
-          i - 2 - b >= 0 && i % b > 1 && i - 2 - b,
-          i - 1 - 2 * b >= 0 && i % b > 0 && i - 1 - 2 * b,
-          i - 2 + b < b * b && i % b > 1 && i - 2 + b,
-          i - 1 + 2 * b < b * b && i % b > 0 && i - 1 + 2 * b,
-          i + 2 - b >= 0 && i % b < b - 2 && i + 2 - b,
-          i + 1 - 2 * b >= 0 && i % b < b - 1 && i + 1 - 2 * b,
-          i + 2 + b < b * b && i % b < b - 2 && i + 2 + b,
-          i + 1 + 2 * b < b * b && i % b < b - 1 && i + 1 + 2 * b
-        );
-
-        this.resetBoardStateUpdate();
-        additionalPieces.filter((item): item is number => !!item).forEach((item) => this.indices.add(item));
-      } else {
-        //trivial cases
-        this.currentPieces[draggedPiece] = this.currentPieces[draggedPiece].replace(pair[0], "");
-        this.currentPieces[targetPiece] = this.currentPieces[targetPiece].replace(pair[1], `${pair[0]} ${pair[1]}`);
-        this.resetBoardStateUpdate();
-        this.indices.add(draggedPiece);
-      }
-    };
-
-    this.movePointerParams = {
-      startPoint: this.getPiecesMiddle(draggedPiece),
-      endPoint: this.getPiecesMiddle(targetPiece),
-    };
-    setTimeout(
-      () => {
-        runInAction(() => {
-          pairTypeActions(...pair);
-
-          this.explodeSpecials(targetPiece);
-          this.countMadeMove();
-
-          this.movePointerParams = null;
-        });
-      },
-      this.debugMode ? 0 : 400
-    );
-
-    return true;
-  }
-
-  perkAction(type: Perk) {
-    if (type === perks.shuffle) {
-      this.currentPieces = this.unbiasedShuffle(this.currentPieces);
-      if (this.turn === 1) {
-        this.perksUsedBlue.push(perks.shuffle);
-      } else {
-        this.perksUsedRed.push(perks.shuffle);
-      }
-    } else if (type === perks.bomb) {
-      const b = this.boardSize;
-      this.bombExplode(b % 2 === 0 ? (b * b + b) / 2 : (b * b - 1) / 2);
-      if (this.turn === 1) {
-        setTimeout(() => {
-          runInAction(() => this.perksUsedBlue.push(perks.bomb));
-        }, 300);
-      } else {
-        setTimeout(() => {
-          runInAction(() => this.perksUsedRed.push(perks.bomb));
-        }, 300);
-      }
-    } else if (type === perks.hammer) {
-      this.hammerMode = true;
-      // console.log("on");
-    }
-  }
-
-  arrowHorizontalExplode(index: number) {
+  private arrowHorizontalExplode(index: number) {
     const b = this.boardSize;
     let start = index;
     while (start % b > 0) {
@@ -911,11 +563,11 @@ export class BoardViewModel {
 
     row.forEach((item) => {
       item !== index && !this.indices.has(item) && this.explodeSpecials(item);
-      !this.bombs.has(item) && this.indices.add(item);
+      !this._bombs.has(item) && this.indices.add(item);
     });
   }
 
-  arrowVerticalExplode(index: number) {
+  private arrowVerticalExplode(index: number) {
     const b = this.boardSize;
     let start = index % b;
     let column: number[] = [];
@@ -925,7 +577,7 @@ export class BoardViewModel {
 
     column.forEach((item) => {
       item !== index && !this.indices.has(item) && this.explodeSpecials(item);
-      !this.bombs.has(item) && this.indices.add(item);
+      !this._bombs.has(item) && this.indices.add(item);
     });
   }
 
@@ -953,23 +605,23 @@ export class BoardViewModel {
       });
   }
 
-  lightningExplode(index: number, double = false) {
+  private lightningExplode(index: number, double = false) {
     let idx: number[] = [];
     this.currentPieces
       .filter((e, i) => i !== index)
       .map((el, index) => {
         idx.push(index);
       });
-    const shuffled = this.unbiasedShuffle(idx);
+    const shuffled = Helpers.unbiasedShuffle(idx);
 
-    const power = double ? 2 * this._lightningExplodePower : this._lightningExplodePower;
+    const power = double ? 2 * lightningExplodePower : lightningExplodePower;
 
     const shuffledSlice = shuffled.slice(0, power);
-    const endPoints = shuffledSlice.map(this.getPiecesMiddle);
+    const endPoints = shuffledSlice.map(Helpers.getPiecesMiddle);
 
-    this.lightningsParams = {
+    this.ui.lightningsParams = {
       color: this.getPiecesColor(index),
-      startPoint: this.getPiecesMiddle(index),
+      startPoint: Helpers.getPiecesMiddle(index),
       endPoints: endPoints,
     };
 
@@ -983,12 +635,12 @@ export class BoardViewModel {
         this.indices.add(item);
         item !== index && !this.indices.has(item) && this.explodeSpecials(item);
       });
-      runInAction(() => (this.lightningsParams = null));
+      runInAction(() => (this.ui.lightningsParams = null));
       // console.log(shuffledSlice);
     }, 600);
   }
 
-  explodeSpecials(item: number) {
+  private explodeSpecials(item: number) {
     if (this.currentPieces[item].includes(_classesSpecial.arrowHorizontal)) {
       this.arrowHorizontalExplode(item);
     }
@@ -1008,14 +660,14 @@ export class BoardViewModel {
     }
   }
 
-  removeAllIndices() {
+  private removeAllIndices() {
     if (!this.indices.size) return;
     this.indices.forEach((item) => {
       this.explodeSpecials(item);
     });
 
     const score = (): number => {
-      if (!this.differentValueMode) {
+      if (!this._game.differentValueMode) {
         return this.indices.size;
       } else {
         let raw = 0;
@@ -1029,28 +681,28 @@ export class BoardViewModel {
     this.indices.forEach((item) => {
       if (
         !this.currentPieces[item].includes("shrink") &&
-        !this.arrowsHorizontal.has(item) &&
-        !this.arrowsVertical.has(item) &&
-        !this.bombs.has(item) &&
-        !this.lightnings.has(item)
+        !this._arrowsHorizontal.has(item) &&
+        !this._arrowsVertical.has(item) &&
+        !this._bombs.has(item) &&
+        !this._lightnings.has(item)
       ) {
         this.currentPieces[item] = this.currentPieces[item] + " shrink";
       }
     });
-    this.lightnings.forEach((item) => {
+    this._lightnings.forEach((item) => {
       this.currentPieces[item] = this.currentPieces[item] + " lightning";
     });
-    this.bombs.forEach((item) => {
+    this._bombs.forEach((item) => {
       if (!this.currentPieces[item].includes(_classesSpecial.lightning)) {
         this.currentPieces[item] = this.currentPieces[item] + " bomb";
       }
     });
-    this.arrowsHorizontal.forEach((item) => {
+    this._arrowsHorizontal.forEach((item) => {
       if (!this.currentPieces[item].includes(_classesSpecial.lightning) && !this.currentPieces[item].includes(_classesSpecial.bomb)) {
         this.currentPieces[item] = this.currentPieces[item] + " arrowHorizontal";
       }
     });
-    this.arrowsVertical.forEach((item) => {
+    this._arrowsVertical.forEach((item) => {
       if (
         !this.currentPieces[item].includes(_classesSpecial.lightning) &&
         !this.currentPieces[item].includes(_classesSpecial.bomb) &&
@@ -1060,26 +712,26 @@ export class BoardViewModel {
       }
     });
 
-    if (this.movesMade && this.turn === 1) {
-      this.count += score();
+    if (this._vitals.movesMade && this._vitals.turn === 1) {
+      this._vitals.count += score();
     }
-    if (this.movesMade && this.turn === 2) {
-      this.count2 += score();
+    if (this._vitals.movesMade && this._vitals.turn === 2) {
+      this._vitals.count2 += score();
     }
 
     if (
-      (this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) &&
-      (this.bombs.size || this.lightnings.size || this.arrowsHorizontal.size || this.arrowsVertical.size) &&
+      (this._game.constraintGamemode === constraintGamemodes.multiplayer || this._game.constraintGamemode === constraintGamemodes.bot) &&
+      (this._bombs.size || this._lightnings.size || this._arrowsHorizontal.size || this._arrowsVertical.size) &&
       !this.extraMoveAwarded
     ) {
       this.awardExtraMove();
     }
 
     this.indices.clear();
-    this.bombs.clear();
-    this.lightnings.clear();
-    this.arrowsHorizontal.clear();
-    this.arrowsVertical.clear();
+    this._bombs.clear();
+    this._lightnings.clear();
+    this._arrowsHorizontal.clear();
+    this._arrowsVertical.clear();
     setTimeout(
       () =>
         runInAction(() => {
@@ -1093,7 +745,7 @@ export class BoardViewModel {
     );
   }
 
-  checkForCorners(currentPieces: string[]) {
+  private checkForCorners(currentPieces: string[]) {
     const b = this.boardSize;
     for (let i = 0; i < b * (b - 2); i++) {
       if (i % b >= b - 2) {
@@ -1108,7 +760,7 @@ export class BoardViewModel {
           upperLeft.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && this.bombs.add(i);
+          !this._lightnings.size && this._bombs.add(i);
           // return true;
         }
         if (lowerLeft.every((piece) => currentPieces[piece].split(" ")[0] === currentType)) {
@@ -1117,7 +769,7 @@ export class BoardViewModel {
           lowerLeft.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && this.bombs.add(i + 2 * b);
+          !this._lightnings.size && this._bombs.add(i + 2 * b);
 
           // return true;
         }
@@ -1141,7 +793,7 @@ export class BoardViewModel {
           upperRight.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && this.bombs.add(i + 2);
+          !this._lightnings.size && this._bombs.add(i + 2);
 
           // return true;
         }
@@ -1150,7 +802,7 @@ export class BoardViewModel {
           lowerRight.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && this.bombs.add(i + 2 * b + 2);
+          !this._lightnings.size && this._bombs.add(i + 2 * b + 2);
 
           // return true;
         }
@@ -1159,7 +811,7 @@ export class BoardViewModel {
   }
   //ok
 
-  checkForTsAndPluses(currentPieces: string[]) {
+  private checkForTsAndPluses(currentPieces: string[]) {
     const b = this.boardSize;
     for (let i = 0; i < b * (b - 2); i++) {
       if (i % b >= b - 2) {
@@ -1188,7 +840,7 @@ export class BoardViewModel {
         upper.forEach((index) => {
           this.indices.add(index);
         });
-        !this.lightnings.size && this.bombs.add(i + 1);
+        !this._lightnings.size && this._bombs.add(i + 1);
         // return true;
       }
       if (left.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
@@ -1196,7 +848,7 @@ export class BoardViewModel {
         left.forEach((index) => {
           this.indices.add(index);
         });
-        !this.lightnings.size && this.bombs.add(i + b);
+        !this._lightnings.size && this._bombs.add(i + b);
         // return true;
       }
       if (lower.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
@@ -1204,7 +856,7 @@ export class BoardViewModel {
         lower.forEach((index) => {
           this.indices.add(index);
         });
-        !this.lightnings.size && this.bombs.add(i + 1 + 2 * b);
+        !this._lightnings.size && this._bombs.add(i + 1 + 2 * b);
         // return true;
       }
       if (right.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
@@ -1212,7 +864,7 @@ export class BoardViewModel {
         right.forEach((index) => {
           this.indices.add(index);
         });
-        !this.lightnings.size && this.bombs.add(i + 2 + b);
+        !this._lightnings.size && this._bombs.add(i + 2 + b);
         // return true;
       }
       if (plus.every((piece, i, self) => !!currentType(self) && currentPieces[piece].split(" ")[0] === currentType(self))) {
@@ -1220,14 +872,14 @@ export class BoardViewModel {
         plus.forEach((index) => {
           this.indices.add(index);
         });
-        !this.lightnings.size && this.bombs.add(i + 1 + b);
+        !this._lightnings.size && this._bombs.add(i + 1 + b);
 
         return true;
       }
     }
   }
 
-  checkForRowsOfFive(currentPieces: string[]) {
+  private checkForRowsOfFive(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * b - 4; i++) {
@@ -1242,7 +894,7 @@ export class BoardViewModel {
             this.indices.add(index);
           });
 
-          this.lightnings.add(i);
+          this._lightnings.add(i);
           // console.log(i + " row of five " + currentType);
           matchesEncountered++;
           if (matchesEncountered === 2) return true;
@@ -1252,7 +904,7 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  checkForRowsOfFour(currentPieces: string[]) {
+  private checkForRowsOfFour(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * b - 3; i++) {
@@ -1266,7 +918,7 @@ export class BoardViewModel {
           rowOfFour.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && !this.bombs.size && this.arrowsHorizontal.add(i);
+          !this._lightnings.size && !this._bombs.size && this._arrowsHorizontal.add(i);
           // console.log(i + " row of four " + currentType);
           matchesEncountered++;
           if (matchesEncountered === 2) return true;
@@ -1276,7 +928,7 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  checkForRowsOfThree(currentPieces: string[]) {
+  private checkForRowsOfThree(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * b - 2; i++) {
@@ -1299,7 +951,7 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  checkForColumnsOfFive(currentPieces: string[]) {
+  private checkForColumnsOfFive(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 4); i++) {
@@ -1311,7 +963,7 @@ export class BoardViewModel {
           column.forEach((index) => {
             this.indices.add(index);
           });
-          this.lightnings.add(i);
+          this._lightnings.add(i);
           // console.log(i + " column of five " + currentType);
           matchesEncountered++;
           if (matchesEncountered === 2) return true;
@@ -1321,7 +973,7 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  checkForColumnsOfFour(currentPieces: string[]) {
+  private checkForColumnsOfFour(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 3); i++) {
@@ -1333,7 +985,7 @@ export class BoardViewModel {
           column.forEach((index) => {
             this.indices.add(index);
           });
-          !this.lightnings.size && !this.bombs.size && this.arrowsVertical.add(i);
+          !this._lightnings.size && !this._bombs.size && this._arrowsVertical.add(i);
           // console.log(i + " column of four " + currentType);
           matchesEncountered++;
           if (matchesEncountered === 2) return true;
@@ -1343,7 +995,7 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  checkForColumnsOfThree(currentPieces: string[]) {
+  private checkForColumnsOfThree(currentPieces: string[]) {
     const b = this.boardSize;
     let matchesEncountered = 0;
     for (let i = 0; i < b * (b - 2); i++) {
@@ -1364,88 +1016,45 @@ export class BoardViewModel {
     return !!matchesEncountered;
   }
 
-  tryAutoPassMove() {
-    if (this.movesLeft !== 0 || this.gameOver) return;
-
-    this.movesLeft = 3;
-    if (this.turn === 2 && this.roundNumber < this._roundsCount) {
-      this.turn = 1;
-      this.roundNumber++;
-    } else if (this.turn === 1) {
-      this.turn = 2;
-    }
-  }
-
-  resetEverything = () => {
-    this.populateBoard();
-    if (this.constraintGamemode === constraintGamemodes.moves) {
-      this.movesLeft = 20;
-    } else if (this.constraintGamemode === constraintGamemodes.multiplayer || this.constraintGamemode === constraintGamemodes.bot) {
-      this.movesLeft = 3;
-    }
-    this.movesMade = 0;
-    if (this.constraintGamemode === constraintGamemodes.time) {
-      this.timeLeft = 60;
-    }
-    this.count = 0;
-    this.count2 = 0;
-    this.roundNumber = 1;
-    this.turn = 1;
-    this.timeElapsed = 0;
-
-    this.gameOver = false;
-    this.perksUsedBlue = [];
-    this.perksUsedRed = [];
-    if (!this.modeHasChanged) {
-      this.modeHasChanged = true;
-    }
-    if (!this._paramsHaveChanged) {
-      this._paramsHaveChanged = true;
-    }
-  };
-
-  private awardExtraMove() {
-    runInAction(() => {
-      this.extraMoveAwarded = true;
-      this.movesLeft++;
-    });
-  }
-
-  //#endregion
-
-  //#region helpers
-
-  private unbiasedShuffle<T extends unknown = string>(array: T[]): T[] {
-    let currentIndex = array.length;
-    let randomIndex: number;
-
-    // While there remain elements to shuffle.
-    while (currentIndex > 0) {
-      // Pick a remaining element.
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
-
-      // And swap it with the current element.
-      [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
-    }
-
-    return array;
-  }
-
-  private getPiecesMiddle(index: number): [number, number] {
-    const element = document.querySelector(`[data-key='${index}']`);
-    const rec = element.getBoundingClientRect();
-    const correction = element.classList.contains("star") || element.classList.contains("pentagon") ? 10 : 0;
-
-    return [
-      rec.left + window.scrollX + element.scrollWidth / 2 + correction,
-      rec.top + window.scrollY + element.scrollHeight / 2 + correction,
-    ];
-  }
-
   private getPiecesColor(index: number) {
     const classList = document.querySelector(`[data-key='${index}']`).classList;
     return _colors[classList[1]];
+  }
+
+  private countMadeMove(): void {
+    if (this._game.debugMode) return;
+    this._vitals.movesMade = this._vitals.movesMade + 1;
+    if (!this._vitals.movesMade) {
+      this._vitals.timeElapsed = 0;
+    }
+
+    if (!this._vitals.movesMade && this._game.constraintGamemode === constraintGamemodes.moves) {
+      this._vitals.movesLeft = 20;
+    }
+
+    if (!this._vitals.movesMade && this._game.constraintGamemode === constraintGamemodes.time) {
+      this._vitals.timeLeft = 180;
+    }
+
+    if (
+      this._game.constraintGamemode === constraintGamemodes.moves ||
+      this._game.constraintGamemode === constraintGamemodes.multiplayer ||
+      this._game.constraintGamemode === constraintGamemodes.bot
+    ) {
+      this._vitals.movesLeft--;
+    }
+  }
+
+  private tryAutoPassMove(): void {
+    if (this._vitals.movesLeft !== 0 || this._vitals.gameOver) return;
+
+    this._vitals.movesLeft = 3;
+    if (this._vitals.turn === 2 && this._vitals.roundNumber < roundsCount) {
+      this._vitals.turn = 1;
+      this._vitals.roundNumber++;
+    } else if (this._vitals.turn === 1) {
+      this._vitals.turn = 2;
+    }
   }
 
   //#endregion

@@ -1,11 +1,11 @@
-const _classesRegular = Object.freeze({
+const _classesRegular = {
   square: "square",
   diamond: "diamond",
   circle: "circle",
   triangle: "triangle",
   pentagon: "pentagon",
   star: "star",
-});
+} as const;
 
 export const _colors = {
   square: { primary: "#e74c3c", backglow: "#ec230d" },
@@ -16,12 +16,12 @@ export const _colors = {
   star: { primary: "#e2e938", backglow: "#f6ff00" },
 };
 
-export const _classesSpecial = Object.freeze({
+export const _classesSpecial = {
   arrowHorizontal: "arrowHorizontal",
   arrowVertical: "arrowVertical",
   bomb: "bomb",
   lightning: "lightning",
-});
+} as const;
 
 export const classesRegular = Object.values(_classesRegular);
 // const classesRegular = ["square", "diamond", "circle", "triangle", "pentagon", "star"] as const;
@@ -34,7 +34,7 @@ export const constraintGamemodes = Object.freeze({
   moves: "moves",
   bot: "bot",
 });
-export const perks = Object.freeze({ shuffle: "shuffle", bomb: "bomb", hammer: "hammer" });
+export const perks = { shuffle: "shuffle", bomb: "bomb", hammer: "hammer" } as const;
 
 export const counterpartMoves = {
   left: "right",
@@ -61,10 +61,12 @@ export const priority = {
   default: 1,
 } as const;
 
-export type ClassRegular = (typeof classesRegular)[number];
-export type ClassSpecial = (typeof classesSpecial)[number];
-export type ColorGamemode = keyof typeof colorGamemodes;
-export type ConstraintGamemode = keyof typeof constraintGamemodes;
-export type Perk = keyof typeof perks;
+export const blueColor = "#3498db";
 
-export type Direction = "left" | "right" | "upwards" | "downwards";
+export const redColor = "#e74c3c";
+
+export const neutralColor = "white";
+
+export const lightningExplodePower = 12;
+
+export const roundsCount = 5;

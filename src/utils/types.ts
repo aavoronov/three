@@ -28,3 +28,9 @@ export interface MovePointerParams {
   startPoint: [number, number];
   endPoint: [number, number];
 }
+
+export type Piece = {
+  class: ClassRegular;
+  special: ClassSpecial;
+  isBeingRemoved: boolean;
+};

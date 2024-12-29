@@ -1,19 +1,19 @@
-import { reaction, runInAction } from "mobx";
-import { classesSpecial, constraintGamemodes, perks, priority } from "../constants";
-import { ClassRegular, Direction, Move } from "../types";
-import { BoardViewModel } from "../board/boardViewModel";
-import { MovesCollection } from "../movesCollection";
+import { makeAutoObservable, reaction, runInAction } from "mobx";
+import { classesSpecial, constraintGamemodes, perks, priority } from "../utils/constants";
+import { ClassRegular, Direction, Move } from "../utils/types";
+import { MovesCollection } from "../utils/movesCollection";
+import { GameViewModel } from "./gameViewModel";
 
 export class RivalBot {
   //#region ctor
 
-  private constructor(private readonly vm: BoardViewModel) {
-    // console.log("bot instantiated");
+  constructor(private readonly _game: GameViewModel) {
+    console.log("bot instantiated");
 
     reaction(
       () => [this.botIsActive, this.canMove],
-      () => {
-        if (this.botIsActive && this.canMove) {
+      ([isActive, canMove]) => {
+        if (isActive && canMove) {
           this.makeMove();
         }
       }
@@ -22,34 +22,24 @@ export class RivalBot {
 
   //#endregion
 
-  //#region instance
-
-  private static _instance: RivalBot;
-
-  static getInstance(vm: BoardViewModel): RivalBot {
-    // console.log("bot instance requested");
-    if (!RivalBot._instance) {
-      RivalBot._instance = new RivalBot(vm);
-    }
-    return this._instance;
-  }
-
-  //#endregion
-
   //#region fields
 
-  private readonly rollThresholds = [700, 300, 0];
-  private readonly perkUseProbabilities = [0.1, 0.15, 0.2];
-  private readonly perksAvailable = [perks.bomb, perks.shuffle];
+  private readonly _moveValueRollThresholds = [700, 300, 0];
 
-  private readonly minMoveDelay = 1000;
-  private readonly maxMoveDelay = 3000;
+  private readonly _perkUseProbabilities = [0.1, 0.15, 0.2];
+
+  private readonly _perksAvailable = [perks.bomb, perks.shuffle];
+
+  private readonly _minMoveDelay = 1000;
+
+  private readonly _maxMoveDelay = 3000;
 
   private get botIsActive() {
-    return this.vm.constraintGamemode === constraintGamemodes.bot;
+    return this._game.constraintGamemode === constraintGamemodes.bot;
   }
+
   private get canMove() {
-    return this.vm.boardStabilized && this.vm.turn === 2 && !!this.vm.movesLeft;
+    return this._game.board.boardStabilized && this._game.vitals.turn === 2 && !!this._game.vitals.movesLeft;
   }
 
   //#endregion
@@ -57,11 +47,11 @@ export class RivalBot {
   //#region methods
 
   private getMoveDelay() {
-    return Math.floor(Math.random() * (this.maxMoveDelay - this.minMoveDelay) + this.minMoveDelay);
+    return Math.floor(Math.random() * (this._maxMoveDelay - this._minMoveDelay) + this._minMoveDelay);
   }
 
-  checkForPossibleMoves(board: string[]) {
-    const b = this.vm.boardSize;
+  private checkForPossibleMoves(board: string[]) {
+    const b = this._game.board.boardSize;
     const possiblePositionChanges = [
       { direction: "left", by: -1 },
       { direction: "right", by: +1 },
@@ -152,7 +142,7 @@ export class RivalBot {
 
       const toCheck = calculateCellsToCheckForMatch(change.direction, index);
       for (const i of toCheck) {
-        if (i + change.by < 0 || i + change.by >= this.vm.boardSize * this.vm.boardSize) continue;
+        if (i + change.by < 0 || i + change.by >= this._game.board.boardSize * this._game.board.boardSize) continue;
         if ((i % b === b - 1 && (i + change.by) % b === 0) || (i % b === 0 && (i + change.by) % b === b - 1)) {
           continue;
         }
@@ -211,7 +201,7 @@ export class RivalBot {
     };
 
     const checkForTs = (virtualBoard: string[], index: number, change: Change) => {
-      const b = this.vm.boardSize;
+      const b = this._game.board.boardSize;
       const toCheck = calculateCellsToCheckForMatch(change.direction, index);
       for (const i of toCheck) {
         if (i % b >= b - 2) {
@@ -338,14 +328,14 @@ export class RivalBot {
       }
     };
 
-    for (let i = 0; i < this.vm.boardSize * this.vm.boardSize; i++) {
+    for (let i = 0; i < this._game.board.boardSize * this._game.board.boardSize; i++) {
       for (const change of possiblePositionChanges) {
         const virtualBoard = [...board];
 
         checkforDoubleSpecialMoves(virtualBoard, i, change);
 
         virtuallySwapPieces(virtualBoard, i, i + change.by);
-        if (i + change.by < 0 || i + change.by >= this.vm.boardSize * this.vm.boardSize) continue;
+        if (i + change.by < 0 || i + change.by >= this._game.board.boardSize * this._game.board.boardSize) continue;
         if ((i % b === b - 1 && (i + change.by) % b === 0) || (i % b === 0 && (i + change.by) % b === b - 1)) {
           continue;
         }
@@ -357,8 +347,6 @@ export class RivalBot {
       }
     }
 
-    // console.log(possibleMoves.moves);
-    // debugger;
     return possibleMoves.moves;
   }
 
@@ -381,7 +369,7 @@ export class RivalBot {
     const roll = () => Math.floor(Math.random() * 1000);
 
     for (const value of values) {
-      if (roll() > this.rollThresholds[this.vm.botDifficulty] || value === 1) {
+      if (roll() > this._moveValueRollThresholds[this._game.botDifficulty] || value === priority.default) {
         return value;
       }
     }
@@ -394,17 +382,17 @@ export class RivalBot {
   }
 
   private commitMove(move: Move) {
-    // console.log(move);
-    if (this.vm.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
-    this.vm.swapPieces(move.index, move.index + move.by);
+    if (this._game.board.doubleSpecialPieceMove(move.index, move.index + move.by)) return;
+    this._game.board.swapPieces(move.index, move.index + move.by);
   }
 
   private usePerkInstead() {
-    const usePerk = (perk: (typeof this.perksAvailable)[number]) => {
-      this.vm.usePerk(perk, "red");
+    const usePerk = (perk: (typeof this._perksAvailable)[number]) => {
+      this._game.perkManager.usePerk(perk, "red");
     };
+    debugger;
 
-    const unusedPerks = this.perksAvailable.filter((item) => !this.vm.perksUsedRed.includes(item));
+    const unusedPerks = this._perksAvailable.filter((item) => !this._game.perkManager.perksUsedRed.includes(item));
     const pickedPerk = unusedPerks[Math.floor(Math.random() * unusedPerks.length)];
 
     usePerk(pickedPerk);
@@ -414,19 +402,19 @@ export class RivalBot {
     const rollForPerkUse = Math.random();
 
     const delay = this.getMoveDelay();
-    const possibleMoves = this.checkForPossibleMoves(this.vm.currentPieces);
+    const possibleMoves = this.checkForPossibleMoves(this._game.board.currentPieces);
     const range = this.rangePossibleMoves(possibleMoves);
 
     if (
-      rollForPerkUse < this.perkUseProbabilities[this.vm.botDifficulty] &&
-      this.vm.perksUsedRed.length < this.perksAvailable.length &&
+      rollForPerkUse < this._perkUseProbabilities[this._game.botDifficulty] &&
+      this._game.perkManager.perksUsedRed.length < this._perksAvailable.length &&
       parseInt(Object.keys(range).at(-1)) < priority.arrowExplosion
       // this means if there is no possible move equal or better than an arrow explosion,
       // only then the thing should proceed with using a perk
     ) {
       //? why promises? unsure. timeouts display weird behavior
       new Promise<void>((res) => {
-        setTimeout(() => res(), delay);
+        setTimeout(res, delay);
       }).then(() => {
         runInAction(() => this.usePerkInstead());
         return;
@@ -436,7 +424,7 @@ export class RivalBot {
       const move = this.getRandomMoveOfGivenValue(possibleMoves, moveValue);
 
       new Promise<void>((res) => {
-        setTimeout(() => res(), delay);
+        setTimeout(res, delay);
       }).then(() => {
         this.commitMove(move);
         return;

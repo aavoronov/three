@@ -73,16 +73,15 @@ import { runInAction } from "mobx";
 import { observer } from "mobx-react";
 import Head from "next/head";
 import Script from "next/script";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { useSwipeable } from "react-swipeable";
-import { RivalBot } from "../bot/rivalBot";
-import LightningsLayer from "../components/lightnings";
-import MoveIndicator from "../components/moveIndicator";
-import { colorGamemodes, constraintGamemodes, perks } from "../constants";
-import { BoardViewModel } from "./boardViewModel";
+import LightningsLayer from "./lightnings";
+import MoveIndicator from "./moveIndicator";
+import { colorGamemodes, constraintGamemodes, perks } from "../utils/constants";
+import { GameViewModel } from "../game/gameViewModel";
 
 interface Props {
-  vm: BoardViewModel;
+  vm: GameViewModel;
 }
 
 const swipeConfig = {
@@ -95,38 +94,30 @@ const swipeConfig = {
   touchEventOptions: { passive: true }, // options for touch listeners (*See Details*)
 };
 
-const BoardModel = observer(({ vm }: Props) => {
-  const bot = useRef<RivalBot>();
-
+const Board = observer(({ vm }: Props) => {
   const swipeHandlers = useSwipeable({
     onSwiped: (eventData) => {
-      vm.swipeEnd(eventData);
+      vm.board.swipeEnd(eventData);
     },
 
     onTouchStartOrOnMouseDown: (eventData) => {
-      vm.swipeStart(eventData.event);
+      vm.board.swipeStart(eventData.event);
     },
     ...swipeConfig,
   });
 
   useEffect(() => {
-    bot.current = RivalBot.getInstance(vm);
-
-    return () => (bot.current = null);
-  }, []);
-
-  useEffect(() => {
-    vm.populateBoard();
+    vm.board.populateBoard();
 
     const timeIncrement = setInterval(() => {
-      if (vm.gameOver || !vm.movesMade) return;
+      if (vm.vitals.gameOver || !vm.vitals.movesMade) return;
       runInAction(() => {
-        vm.timeElapsed++;
-        vm.constraintGamemode === "time" && vm.timeLeft > 0 && vm.timeLeft--;
+        vm.vitals.timeElapsed++;
+        vm.constraintGamemode === "time" && vm.vitals.timeLeft > 0 && vm.vitals.timeLeft--;
       });
     }, 1000);
 
-    const timer = setInterval(() => vm.gameTick(), 250);
+    const timer = setInterval(() => vm.board.gameTick(), 250);
 
     return () => {
       clearInterval(timeIncrement);
@@ -142,24 +133,26 @@ const BoardModel = observer(({ vm }: Props) => {
         <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no' />
       </Head>
       <Script src='/DragDropTouch.js'></Script>
-      <button className='openMenuBtn' onClick={vm.toggleMenu}>
+      <button className='openMenuBtn' onClick={vm.ui.toggleMenu}>
         &gt;
       </button>
-      {vm.menuIsOpen && <div className='overlay' onClick={vm.toggleMenu}></div>}
-      {!!vm.lightningsParams && (
+      {vm.ui.menuIsOpen && <div className='overlay' onClick={vm.ui.toggleMenu}></div>}
+      {!!vm.ui.lightningsParams && (
         <LightningsLayer
-          startPoint={vm.lightningsParams.startPoint}
-          endPoints={vm.lightningsParams.endPoints}
-          color={vm.lightningsParams.color}
+          startPoint={vm.ui.lightningsParams.startPoint}
+          endPoints={vm.ui.lightningsParams.endPoints}
+          color={vm.ui.lightningsParams.color}
         />
       )}
-      {!!vm.movePointerParams && <MoveIndicator startPoint={vm.movePointerParams.startPoint} endPoint={vm.movePointerParams.endPoint} />}
-      <div className={`controlPanel${vm.menuIsOpen ? " opened" : ""}`}>
+      {!!vm.ui.movePointerParams && (
+        <MoveIndicator startPoint={vm.ui.movePointerParams.startPoint} endPoint={vm.ui.movePointerParams.endPoint} />
+      )}
+      <div className={`controlPanel${vm.ui.menuIsOpen ? " opened" : ""}`}>
         <div className='boardSizeBtns'>
           <button className='boardSizeBtn' onClick={() => vm.changeBoardSize(-1)}>
             -
           </button>
-          <span>Размер доски: {vm.boardSize}</span>
+          <span>Размер доски: {vm.board.boardSize}</span>
           <button className='boardSizeBtn' onClick={() => vm.changeBoardSize(1)}>
             +
           </button>
@@ -212,15 +205,15 @@ const BoardModel = observer(({ vm }: Props) => {
       </div>
       <div className='game'>
         <div className='stats'>
-          <span className='stats-line'>{vm.modeText}</span>
+          <span className='stats-line'>{vm.ui.modeText}</span>
 
           {(() => {
-            if (!vm.multiplayerText) return;
+            if (!vm.ui.multiplayerText) return;
             return (
               <span className='stats-line'>
-                {vm.multiplayerText.startText}
-                <span style={{ color: vm.multiplayerText.currentColor.code }}>{vm.multiplayerText.currentColor.name}. </span>
-                <span className={`movesLeft ${vm.extraMoveAwarded ? "extraMoveAwarded" : ""}`}>{vm.multiplayerText.endText}</span>
+                {vm.ui.multiplayerText.startText}
+                <span style={{ color: vm.ui.multiplayerText.currentColor.code }}>{vm.ui.multiplayerText.currentColor.name}. </span>
+                <span className={`movesLeft ${vm.board.extraMoveAwarded ? "extraMoveAwarded" : ""}`}>{vm.ui.multiplayerText.endText}</span>
               </span>
             );
           })()}
@@ -228,64 +221,68 @@ const BoardModel = observer(({ vm }: Props) => {
           {/* <button onClick={() => bot.current.checkForPossibleMoves(vm.currentPieces)}>possible moves</button>
           <button onClick={() => bot.current.makeMove()}>selected move</button> */}
 
-          {vm.movesMade ? (
+          {vm.vitals.movesMade ? (
             <>
-              <span className='stats-line'>{vm.time}</span>
+              <span className='stats-line'>{vm.ui.time}</span>
 
               {vm.constraintGamemode !== constraintGamemodes.multiplayer && vm.constraintGamemode !== constraintGamemodes.bot && (
-                <span className='stats-line'>{vm.singleplayerScore}</span>
+                <span className='stats-line'>{vm.ui.singleplayerScore}</span>
               )}
               {vm.constraintGamemode === constraintGamemodes.multiplayer || vm.constraintGamemode === constraintGamemodes.bot ? (
                 <div className='twoPlayerStatsWrap'>
                   <div className='twoPlayersStats'>
                     <div className='playerWrap'>
-                      <span style={{ color: vm.multiplayerScore.blue.color }}>{vm.multiplayerScore.blue.score}</span>
+                      <span style={{ color: vm.ui.multiplayerScore.blue.color }}>{vm.ui.multiplayerScore.blue.score}</span>
                       <div className='perks blue'>
                         <span
-                          className={vm.calculatePerksClassNames(perks.shuffle, 1)}
-                          onClick={() => vm.usePerk(perks.shuffle, "blue")}></span>
-                        <span className={vm.calculatePerksClassNames(perks.bomb, 1)} onClick={() => vm.usePerk(perks.bomb, "blue")}></span>
+                          className={vm.perkManager.calculatePerksClassNames(perks.shuffle, 1)}
+                          onClick={() => vm.perkManager.usePerk(perks.shuffle, "blue")}></span>
                         <span
-                          className={vm.calculatePerksClassNames(perks.hammer, 1)}
-                          onClick={() => vm.usePerk(perks.hammer, "blue")}></span>
+                          className={vm.perkManager.calculatePerksClassNames(perks.bomb, 1)}
+                          onClick={() => vm.perkManager.usePerk(perks.bomb, "blue")}></span>
+                        <span
+                          className={vm.perkManager.calculatePerksClassNames(perks.hammer, 1)}
+                          onClick={() => vm.perkManager.usePerk(perks.hammer, "blue")}></span>
                       </div>
                     </div>
                     <div className='playerWrap'>
-                      <span style={{ color: vm.multiplayerScore.red.color }}>{vm.multiplayerScore.red.score}</span>
+                      <span style={{ color: vm.ui.multiplayerScore.red.color }}>{vm.ui.multiplayerScore.red.score}</span>
                       <div className='perks red'>
                         <span
-                          className={vm.calculatePerksClassNames(perks.shuffle, 2)}
-                          onClick={() => vm.usePerk(perks.shuffle, "red")}></span>
-                        <span className={vm.calculatePerksClassNames(perks.bomb, 2)} onClick={() => vm.usePerk(perks.bomb, "red")}></span>
+                          className={vm.perkManager.calculatePerksClassNames(perks.shuffle, 2)}
+                          onClick={() => vm.perkManager.usePerk(perks.shuffle, "red")}></span>
                         <span
-                          className={vm.calculatePerksClassNames(perks.hammer, 2)}
-                          onClick={() => vm.usePerk(perks.hammer, "red")}></span>
+                          className={vm.perkManager.calculatePerksClassNames(perks.bomb, 2)}
+                          onClick={() => vm.perkManager.usePerk(perks.bomb, "red")}></span>
+                        <span
+                          className={vm.perkManager.calculatePerksClassNames(perks.hammer, 2)}
+                          onClick={() => vm.perkManager.usePerk(perks.hammer, "red")}></span>
                       </div>
                     </div>
                   </div>
 
-                  {vm.gameOver && <span style={{ color: vm.winner.color }}>{vm.winner.text}</span>}
+                  {vm.vitals.gameOver && <span style={{ color: vm.ui.winner.color }}>{vm.ui.winner.text}</span>}
                 </div>
               ) : vm.constraintGamemode !== "moves" ? (
                 <span className='stats-line'>
-                  Ходов сделано: {vm.movesMade}
-                  {vm.movesMade > 99 && ". Невероятно!"}
+                  Ходов сделано: {vm.vitals.movesMade}
+                  {vm.vitals.movesMade > 99 && ". Невероятно!"}
                 </span>
-              ) : !vm.gameOver ? (
-                <span className='stats-line'>Ходов осталось: {vm.movesLeft}</span>
+              ) : !vm.vitals.gameOver ? (
+                <span className='stats-line'>Ходов осталось: {vm.vitals.movesLeft}</span>
               ) : (
                 <span className='stats-line'>Ходы закончились!</span>
               )}
             </>
           ) : null}
-          {vm.gameOver && <button onClick={vm.handleReplay}>Переиграть</button>}
+          {vm.vitals.gameOver && <button onClick={vm.handleReplay}>Переиграть</button>}
         </div>
 
         <div
-          className={`board${vm.hammerMode ? " hammerMode" : ""}${!vm.boardStabilized ? " locked" : ""}`}
+          className={`board${vm.perkManager.hammerMode ? " hammerMode" : ""}${!vm.board.boardStabilized ? " locked" : ""}`}
           // ref={board}
           onClick={(event: React.MouseEvent) => {
-            vm.breakPieceInHammerMode(event);
+            vm.perkManager.breakPieceInHammerMode(event);
             if (!vm.debugMode) return;
 
             const index = parseInt((event.target as HTMLSpanElement).attributes["data-key"].value);
@@ -296,9 +293,13 @@ const BoardModel = observer(({ vm }: Props) => {
             // hammerMode && explodeSpecials([event.target.attributes["data-key"].value]) && setHammerMode(false);
             // debugMode && console.log(currentPieces[event.target.attributes["data-key"].value].split(" ")[0]);
           }}
-          style={{ gridTemplateColumns: `repeat(${vm.boardSize}, 1fr)`, height: vm.boardSize * 50, width: vm.boardSize * 50 }}>
+          style={{
+            gridTemplateColumns: `repeat(${vm.board.boardSize}, 1fr)`,
+            height: vm.board.boardSize * 50,
+            width: vm.board.boardSize * 50,
+          }}>
           {/* {!vm.boardStabilized ? " moveLocked" : ""} */}
-          {vm.currentPieces.map((e, i) => (
+          {vm.board.currentPieces.map((e, i) => (
             <span
               className={"piece " + e}
               key={i}
@@ -313,9 +314,9 @@ const BoardModel = observer(({ vm }: Props) => {
               onDragLeave={(e) => {
                 e.preventDefault();
               }}
-              onDrop={vm.dragDrop}
-              onDragStart={vm.dragStart}
-              onDragEnd={vm.dragEnd}
+              onDrop={vm.board.dragDrop}
+              onDragStart={vm.board.dragStart}
+              onDragEnd={vm.board.dragEnd}
               {...swipeHandlers}></span>
           ))}
         </div>
@@ -345,7 +346,7 @@ const BoardModel = observer(({ vm }: Props) => {
 
           {vm.differentValueMode && (
             <div className='valueRules'>
-              {vm.classes.map((item, index) => (
+              {vm.board.classes.map((item, index) => (
                 <div className='rule' key={index}>
                   <span className={`piece ${item}`} style={{ width: 40, height: 40, marginRight: 10 }}></span>
                   <span style={{ position: "absolute", left: 17, color: "#29323c" }}>{index + 1}</span>
@@ -359,4 +360,4 @@ const BoardModel = observer(({ vm }: Props) => {
   );
 });
 
-export default BoardModel;
+export default Board;
